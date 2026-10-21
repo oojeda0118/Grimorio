@@ -307,6 +307,14 @@ header.top h1{display:flex;align-items:center;gap:10px}
 .tc.art .tci img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .tc.art .tci>span{visibility:hidden}
 .tc.s.art{border-width:1px;border-radius:5px}
+.deckb.otra{color:var(--accent)}
+.astrolink{border-style:dashed;margin-top:14px}
+.astrolink .hhead{font-size:1.02rem}
+.alnote{background:var(--bg);border-radius:10px;padding:8px 10px;margin-top:0}
+.grow{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px}
+.gcard{display:flex;flex-direction:column;align-items:center;gap:5px;width:96px;flex:none;font-size:.78rem;line-height:1.25;text-align:center;color:var(--text)}
+.guidetip{background:var(--bg);border-radius:10px;padding:8px 10px}
+.hcard .hhead{scroll-margin-top:70px}
 </style>
 </head>
 <body>
@@ -694,7 +702,7 @@ CARDS.forEach(c=>{
 /* ============ Almacenamiento ============ */
 const KEY="grimorio.v1";
 /*v4*/const DEFAULT_TAGS=["Amor","Trabajo","Dinero","Salud","Familia","Espiritual","Personal"];
-const defaults=()=>({v:3,readings:[],daily:{},study:{},notes:{},combos:{},repeatNotes:[],customSpreads:{},tags:DEFAULT_TAGS.slice(),rituals:[],intentions:[],corrUser:[],corrNotes:{},charts:[],gloStudy:{},settings:{theme:"auto",reversals:true,defaultReview:"1m",badge:false},lastBackup:null});
+const defaults=()=>({v:3,readings:[],daily:{},study:{},notes:{},combos:{},repeatNotes:[],customSpreads:{},tags:DEFAULT_TAGS.slice(),rituals:[],intentions:[],corrUser:[],corrNotes:{},charts:[],gloStudy:{},cardObs:{},settings:{theme:"auto",reversals:true,defaultReview:"1m",badge:false},lastBackup:null});
 function normalize(d){const b=defaults();const o=Object.assign(b,d||{},{settings:Object.assign(b.settings,(d&&d.settings)||{})});if(!Array.isArray(o.tags))o.tags=DEFAULT_TAGS.slice();o.v=5;return o}
 function load(){try{const raw=localStorage.getItem(KEY);if(!raw)return defaults();return normalize(JSON.parse(raw))}catch(e){return defaults()}}
 let DB=load();
@@ -797,7 +805,7 @@ function applyTheme(){
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",applyTheme);
 
 /* ============ Navegación y hojas ============ */
-const st={view:"hoy",spSel:0,rcY:null,rcM:null,rcDay:null,pickMode:"plan",pickDate:"",pickNote:"",planDate:"",planNote:"",gloMode:"leer",gloKind:"simbolos",gq2:null,gsess:{ok:0,total:0},hoursAll:false,ritMode:"mine",tradSearch:"",gloSearch:"",gloCat:"",gq:"",bondId:null,curioShift:0,astroTab:"carta",chartId:null,chDraft:null,grimTab:"rituales",ritSearch:"",corrSearch:"",corrCat:"",corrUse:"",rDraft:null,logDraft:null,iDraft:null,cDraft:null,search:"",filter:"todas",tagFilter:"",lecTab:"lista",calY:null,calM:null,calDay:null,spDraft:null,cardsTab:"estudiar",studyMode:"significado",studyGroup:"todas",studyCur:null,studyShown:false,q:null,sess:{ok:0,total:0},
+const st={view:"hoy",guideOpen:"mirada",astroLinkOpen:false,spSel:0,rcY:null,rcM:null,rcDay:null,pickMode:"plan",pickDate:"",pickNote:"",planDate:"",planNote:"",gloMode:"leer",gloKind:"simbolos",gq2:null,gsess:{ok:0,total:0},hoursAll:false,ritMode:"mine",tradSearch:"",gloSearch:"",gloCat:"",gq:"",bondId:null,curioShift:0,astroTab:"carta",chartId:null,chDraft:null,grimTab:"rituales",ritSearch:"",corrSearch:"",corrCat:"",corrUse:"",rDraft:null,logDraft:null,iDraft:null,cDraft:null,search:"",filter:"todas",tagFilter:"",lecTab:"lista",calY:null,calM:null,calDay:null,spDraft:null,cardsTab:"estudiar",studyMode:"significado",studyGroup:"todas",studyCur:null,studyShown:false,q:null,sess:{ok:0,total:0},
   fis:{id:"",rev:false,text:"",shown:false},catGroup:"todas",catSearch:"",comboSearch:"",statsRange:"all",cardTab:"significado",assistOpen:false,comboDraft:null,repeatDraft:""};
 const TITLES={hoy:"Grimorio",lecturas:"Diario",cartas:"Cartas",grimorio:"Mi grimorio",stats:"Estadísticas",ajustes:"Ajustes",astro:"Astrología",glosario:"Glosario"};
 const NAV_OF={stats:"menu",ajustes:"menu",astro:"menu",glosario:"menu"};
@@ -842,7 +850,7 @@ function renderLecturas(){
   st.lecTab==="lista"?renderListView():renderCalendar();
 }
 function renderListView(){
-  const filters=[["todas","Todas"],["fisico","Con mazo físico"],["virtual","Con mazo virtual"],["pend","Sin resultado"],["vencidas","Revisión pendiente"],["revisadas","Revisadas"]];
+  const filters=[["todas","Todas"],["mias","Para mí"],["otras","Para otras personas"],["fisico","Con mazo físico"],["virtual","Con mazo virtual"],["pend","Sin resultado"],["vencidas","Revisión pendiente"],["revisadas","Revisadas"]];
   $("#lbody").innerHTML=`<input type="search" placeholder="Buscar en preguntas, notas o cartas" data-bind="search" value="${esc(st.search)}">
   <div class="row" style="margin:10px 0"><select data-bind="lecFilter" style="flex:1;width:auto">${filters.map(([k,n])=>`<option value="${k}" ${k===st.filter?"selected":""}>${n}</option>`).join("")}</select><button class="btn" data-act="spreadsOpen">Mis tiradas</button></div>
   <div class="chips scroll" style="margin-bottom:12px"><button class="chip" data-act="tagFilter" data-t="" aria-pressed="${!st.tagFilter}">Todos los temas</button>${DB.tags.map(t=>`<button class="chip" data-act="tagFilter" data-t="${esc(t)}" aria-pressed="${st.tagFilter===t}">${esc(t)}</button>`).join("")}</div>
@@ -858,7 +866,7 @@ function readingBadge(r){
 const readingItem=r=>`<button class="ritem" data-act="openReading" data-id="${r.id}">
     <div class="rtop"><span>${r.moon?.emoji||""} ${fmtDate(r.date)}</span>${readingBadge(r)}</div>
     <div class="rq">${esc(r.question||readingSpreadName(r))}</div>
-    ${(r.tags||[]).length||r.deck?`<div class="tagline">${r.deck?`<span class="deckb ${r.deck}">${r.deck==="fisico"?"Físico":"Virtual"}</span>`:""}${(r.tags||[]).map(esc).join(", ")}</div>`:""}
+    ${(r.tags||[]).length||r.deck||r.forWho==="otra"?`<div class="tagline">${r.forWho==="otra"?`<span class="deckb otra">${esc(forLabel(r))}</span>`:""}${r.deck?`<span class="deckb ${r.deck}">${r.deck==="fisico"?"Físico":"Virtual"}</span>`:""}${(r.tags||[]).map(esc).join(", ")}</div>`:""}
     <div class="rcards">${r.cards.filter(c=>c.id).map(c=>face(c.id,c.rev,"s")).join("")}</div></button>`;
 function renderReadingList(){
   const q=st.search.trim().toLowerCase(),today=dkey();
@@ -867,8 +875,10 @@ function renderReadingList(){
   if(st.filter==="vencidas")list=list.filter(r=>!r.outcome&&r.reviewDate&&r.reviewDate<=today);
   if(st.filter==="revisadas")list=list.filter(r=>r.outcome);
   if(st.filter==="fisico"||st.filter==="virtual")list=list.filter(r=>r.deck===st.filter);
+  if(st.filter==="mias")list=list.filter(r=>r.forWho==="yo");
+  if(st.filter==="otras")list=list.filter(r=>r.forWho==="otra");
   if(st.tagFilter)list=list.filter(r=>(r.tags||[]).includes(st.tagFilter));
-  if(q)list=list.filter(r=>[r.question,r.interp,r.followup,readingSpreadName(r),...(r.tags||[]),...r.cards.map(c=>CARD[c.id]?.name)].join(" ").toLowerCase().includes(q));
+  if(q)list=list.filter(r=>[r.person,r.question,r.interp,r.followup,readingSpreadName(r),...(r.tags||[]),...r.cards.map(c=>CARD[c.id]?.name)].join(" ").toLowerCase().includes(q));
   const el=$("#rlist");if(!el)return;
   if(!list.length){el.innerHTML=`<div class="empty">${DB.readings.length?"Ninguna lectura coincide con estos filtros.":"Aquí aparecerán tus lecturas. Empieza con una tirada sencilla de una carta."}</div>`;return}
   el.innerHTML=list.map(readingItem).join("");
@@ -931,7 +941,7 @@ function positionsFor(key,n,cards){const s=spreadOf(key,cards);return s.free?Arr
 function openEditor(id,spread,opts={}){
   if(id)draft=JSON.parse(JSON.stringify(DB.readings.find(r=>r.id===id)));
   else{const sp=spread&&spreadOf(spread)&&!spreadOf(spread).gone?spread:"tres";
-    draft={id:null,deck:"fisico",date:opts.date||dkey(),question:"",spread:sp,cards:positionsFor(sp,1).map(p=>({pos:p,id:"",rev:false})),interp:"",tags:[],reviewIn:DB.settings.defaultReview,outcome:"",followup:"",followDate:""}}
+    draft={id:null,deck:"fisico",forWho:"yo",person:"",personChart:"",date:opts.date||dkey(),question:"",spread:sp,cards:positionsFor(sp,1).map(p=>({pos:p,id:"",rev:false})),interp:"",tags:[],reviewIn:DB.settings.defaultReview,outcome:"",followup:"",followDate:""}}
   st.deckTouched=!!draft.id&&!!draft.deck;if(!draft.tags)draft.tags=[];if(draft.reviewIn==null)draft.reviewIn="";
   st.assistOpen=false;
   let once=!!opts.review;
@@ -955,10 +965,12 @@ function editorHtml(){
     <div class="field"><span class="label">Temas</span><div class="chips" id="tagChips">${tagChips()}</div></div>
     <label class="field"><span class="label">Tirada</span><select data-bind="d.spread">${spreadOptions()}</select></label>
     ${sp.desc?`<p class="small muted">${esc(sp.desc)}</p>`:""}
+    <div class="field"><span class="label">Para quién</span><div id="forWho">${forWhoHtml()}</div></div>
     <div class="field"><span class="label">Mazo</span><div class="seg" role="group" id="deckSeg">${deckSeg()}</div></div>
     <div class="row" style="margin:6px 0 4px"><button class="btn" data-act="drawAll">Barajar y sacar</button><span class="muted small">o elige cada carta de tu mazo físico</span></div>
     <div id="dcards"></div>
     <div id="assistWrap"></div>
+    <div id="astroLinkWrap"></div>
     <label class="field"><span class="label">Mi interpretación</span><textarea rows="5" data-bind="d.interp" placeholder="Lo que sentiste, las conexiones entre cartas…">${esc(draft.interp)}</textarea></label>
     <label class="field"><span class="label">Recordarme revisarla</span><select data-bind="d.reviewIn">${REVIEW_OPTS.map(([k,n])=>`<option value="${k}" ${k===draft.reviewIn?"selected":""}>${n}</option>`).join("")}</select><span class="small muted" id="reviewPrev">${reviewPreview()}</span></label>
     <section class="panel" id="reviewSec" style="margin-top:20px;scroll-margin-top:80px"><h3 style="font-size:1.15rem;margin-bottom:4px">¿Cómo resultó?</h3><p class="muted small">Vuelve más adelante y anota qué pasó en realidad.</p>
@@ -980,7 +992,7 @@ function renderDraftCards(anim){
       <button class="btn ghost sm" data-act="drawOne" data-i="${i}">Sacar al azar</button>${free?`<button class="btn ghost sm" data-act="removePos" data-i="${i}">Quitar</button>`:""}</div>
       ${c.id?`<div class="meaning">${esc(meaning(c.id,c.rev))}</div>`:""}</div></div>`).join("")
    +(free?`<button class="btn block" data-act="addPos">Añadir carta</button>`:"");
-  renderAssist();
+  renderAssist();renderAstroLink();
 }
 const DECKS={fisico:"Mi mazo físico",virtual:"Mazo virtual"};
 const deckSeg=()=>Object.entries(DECKS).map(([k,n])=>`<button data-act="setDeck" data-d="${k}" aria-pressed="${draft.deck===k}">${n}</button>`).join("");
@@ -998,9 +1010,76 @@ function relation(a,b){
 }
 const EL_DOM={fuego:"el tema gira en torno a la acción, la pasión y la voluntad.",agua:"el tema es emocional: vínculos, sentimientos e intuición.",aire:"el tema es mental: pensamientos, conversaciones y decisiones.",tierra:"el tema es concreto: dinero, cuerpo, trabajo o el hogar."};
 const EL_MISS={fuego:"quizá falta motivación, iniciativa o deseo.",agua:"las emociones podrían estar quedando fuera.",aire:"conviene pensar o conversar más el asunto.",tierra:"cuidado con que todo quede en ideas sin concretar."};
+/* ============ PARA QUIÉN ES LA LECTURA ============ */
+const forLabel=r=>r.forWho==="yo"?"Para mí":r.forWho==="otra"?"Para "+(r.person||"otra persona"):"";
+function forWhoHtml(){
+  const others=DB.charts.filter(c=>!c.mine);
+  return `<div class="seg" role="group">${[["yo","Para mí"],["otra","Para otra persona"]].map(([k,n])=>`<button data-act="setFor" data-f="${k}" aria-pressed="${draft.forWho===k}">${n}</button>`).join("")}</div>
+  ${draft.forWho==="otra"?`<div class="row" style="margin-top:8px">${others.length?`<select data-bind="d.personChart" style="flex:1;width:auto"><option value="">Sin carta natal guardada</option>${others.map(c=>`<option value="${c.id}" ${draft.personChart===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select>`:""}<input type="text" data-bind="d.person" value="${esc(draft.person||"")}" placeholder="Nombre" style="flex:1;width:auto;min-width:120px"></div>`:""}`;
+}
+function chartForReading(r){
+  if(r.forWho==="yo")return myChart();
+  if(r.forWho==="otra"&&r.personChart)return DB.charts.find(c=>c.id===r.personChart)||null;
+  return null;
+}
+
+/* ============ CONEXIONES ASTROLÓGICAS (tarjeta aparte) ============ */
+function renderAstroLink(){
+  const w=$("#astroLinkWrap");if(!w)return;
+  w.innerHTML=`<section class="panel astrolink"><button class="hhead" data-act="toggleAstroLink" aria-expanded="${st.astroLinkOpen}" style="padding:0"><span>✦ Conexiones con la carta astral</span>${CHEV}</button>${st.astroLinkOpen?`<div style="margin-top:10px">${astroLinkBody(draft)}</div>`:""}</section>`;
+}
+function astroLinkBody(r){
+  const disclaimer=`<p class="small muted alnote">Esto es solo contexto para tu curiosidad: muestra coincidencias entre las cartas y la carta natal, sin decir qué significan. No cambia el significado de las cartas ni sustituye tu interpretación.</p>`;
+  if(!r.forWho)return disclaimer+`<p class="small">Indica arriba para quién es la lectura.</p>`;
+  const ch=chartForReading(r),who=r.forWho==="yo"?"tu":"su";
+  if(!ch)return disclaimer+`<p class="small">${r.forWho==="yo"?"Aún no tienes tu carta natal marcada como “mi carta”.":"Esta persona no tiene una carta natal guardada. Puedes crearla en Astrología, pestaña Vínculos, y elegirla arriba."}</p>`;
+  const cs=r.cards.filter(c=>c.id);if(!cs.length)return disclaimer+`<p class="small">Saca o elige cartas para ver las conexiones.</p>`;
+  const R=computeChart(ch),date=r.date===dkey()?new Date():fromKey(r.date||dkey()),get=k=>R.planets.find(p=>p.key===k);
+  // cartas personales
+  const pers=[],add=(id,why)=>{if(id)pers.push({id,why})};
+  const sun=get("sol"),moon=get("luna");
+  add(SIGN_CARD[sun.sign],`la carta de ${who} Sol en ${SIGNS[sun.sign][0]}`);
+  if(!ch.noTime)add(SIGN_CARD[moon.sign],`la carta de ${who} Luna en ${SIGNS[moon.sign][0]}`);
+  if(R.ang)add(SIGN_CARD[sgn(R.ang.asc)],`la carta de ${who} Ascendente en ${SIGNS[sgn(R.ang.asc)][0]}`);
+  ["sol","luna","mercurio","venus","marte","jupiter","saturno"].forEach(k=>{if(k==="luna"&&ch.noTime)return;const p=get(k),dc=decanCard(p.lon);if(dc)add(dc.id,`la carta del decanato de ${who} ${PL[k].name} (${fmtLonShort(p.lon)})`)});
+  birthCards(ch.date).forEach(n=>add("M"+n,`${who} carta de nacimiento por numerología`));
+  const yr=+((r.date||dkey()).slice(0,4));yearCards(ch.date,yr).forEach(n=>add("M"+n,`${who} carta del año ${yr}`));
+  const matches=[];cs.forEach(c=>pers.filter(p=>p.id===c.id).forEach(p=>matches.push({c,why:p.why})));
+  const uniq=[...new Set(pers.map(p=>p.id))];
+  let h=disclaimer+`<p class="small muted" style="margin-top:0">Usando la carta natal “${esc(ch.name)}”.</p>`;
+  h+=`<span class="label">Cartas personales en esta tirada</span>`;
+  h+=matches.length?matches.map(m=>`<p class="small"><b>${esc(m.c.pos)}: ${esc(CARD[m.c.id].name)}</b> es ${m.why}.</p>`).join(""):`<p class="small">Ninguna carta de la tirada coincide con las correspondencias personales de esta carta natal.</p>`;
+  h+=`<details class="small"><summary>Ver todas ${r.forWho==="yo"?"tus":"sus"} cartas personales</summary><div class="chips" style="margin-top:8px">${uniq.map(id=>`<button class="chip" data-act="cardInfo" data-id="${id}">${esc(CARD[id].name)}</button>`).join("")}</div></details>`;
+  // cielo del día
+  const tm=planetLon("luna",date),mh=R.cusps?houseOf(tm,R.cusps):null,tr=transitList(ch,date,2).slice(0,5);
+  h+=`<span class="label">El cielo el día de la lectura</span><p class="small">La Luna estaba en ${SIGNS[sgn(tm)][0]}${mh?`, pasando por ${who} casa ${mh} (${HOUSE_TXT[mh]})`:""}.</p>`;
+  h+=tr.length?tr.map(x=>`<p class="small">${PL[x.t].g} ${PL[x.t].name} en ${SIGNS[sgn(x.tl)][0]} hacía ${x.a.name} con ${who} ${ptName(x.n)} natal (orbe ${x.a.orb.toFixed(1)}°).</p>`).join(""):`<p class="small">Ese día no había tránsitos exactos destacados.</p>`;
+  // momentos
+  const mom=[];
+  if(!ch.noTime){let d=Math.abs(norm(tm-moon.lon));if(d>180)d=360-d;if(d<14)mom.push(`La lectura cae cerca de ${who} revolución lunar (la Luna estaba a ${d.toFixed(0)}° de ${who} Luna natal).`)}
+  {let d=Math.abs(norm(planetLon("sol",date)-sun.lon));if(d>180)d=360-d;if(d<5)mom.push(`La lectura cae cerca de ${who} cumpleaños astrológico (el Sol estaba a ${d.toFixed(0)}° de ${who} Sol natal).`)}
+  if(mom.length)h+=`<span class="label">Momentos del ciclo</span>${mom.map(t=>`<p class="small">${t}</p>`).join("")}`;
+  // elementos
+  const ec={fuego:0,agua:0,aire:0,tierra:0};cs.forEach(c=>{const e=CARD[c.id].elem;if(e)ec[e]++});
+  const tot=Object.values(ec).reduce((a,b)=>a+b,0);
+  if(tot>=2){
+    const ce={fuego:0,agua:0,aire:0,tierra:0};R.planets.filter(p=>!NON_ASPECT.includes(p.key)&&!(ch.noTime&&p.key==="luna")).forEach(p=>ce[SIGN_EL[sgn(p.lon)%4]]++);
+    const sd=Object.entries(ec).sort((a,b)=>b[1]-a[1])[0],cd=Object.entries(ce).sort((a,b)=>b[1]-a[1]),cmin=cd[cd.length-1];
+    if(sd[1]/tot>=.5){
+      const art={fuego:"el fuego",tierra:"la tierra",aire:"el aire",agua:"el agua"};
+      let t=`En la tirada predomina ${art[sd[0]]}.`;
+      if(sd[0]===cd[0][0])t+=` Es también el elemento que más aparece en la carta natal (${cd[0][1]} planetas).`;
+      else if(sd[0]===cmin[0])t+=` Es el elemento que menos aparece en la carta natal (${cmin[1]} planetas).`;
+      else t+=` En la carta natal tiene ${ce[sd[0]]} planetas; el más presente es ${art[cd[0][0]]}.`;
+      h+=`<span class="label">Elementos</span><p class="small">${t}</p>`;
+    }
+  }
+  return h;
+}
+
 function renderAssist(){
   const w=$("#assistWrap");if(!w)return;
-  w.innerHTML=`<button class="btn block" data-act="toggleAssist" style="margin-top:14px">${st.assistOpen?"Ocultar asistente":"Asistente de interpretación"}</button>${st.assistOpen?`<div class="assist">${analyze(draft)}</div>`:""}`;
+  w.innerHTML=`<button class="btn block" data-act="toggleAssist" style="margin-top:14px">${st.assistOpen?"Ocultar asistente":"Asistente de interpretación"}</button>${st.assistOpen?`<div class="assist">${analyze(draft)}<button class="btn ghost sm" data-act="gloOpen" data-id="pt-todo" style="margin-top:10px">Aprender a leer patrones en las tiradas</button></div>`:""}`;
 }
 function analyze(r){
   const cs=r.cards.filter(c=>c.id).map(c=>Object.assign({},c,{card:CARD[c.id]}));
@@ -1039,6 +1118,7 @@ function analyze(r){
   const ranks={};cs.forEach(c=>{if(c.card.arc==="menor"){const rr=+c.id.slice(1);(ranks[rr]||(ranks[rr]=[])).push(c)}});
   Object.entries(ranks).forEach(([rr,arr])=>{if(arr.length>=2){rr=+rr;ins.push(rr<=10?`Se repite el número ${rr} (${arr.length} veces): ${NUM_TXT[rr]}.`:`Se repiten ${arr.length} ${["sotas","caballeros","reinas","reyes"][rr-11]}: ${COURT_TXT[rr-11]}`)}});
   h+=`<h4>Panorama de la tirada</h4>${ins.map(t=>`<p>${esc(t)}</p>`).join("")||'<p class="muted small">Sin patrones destacados.</p>'}`;
+  h+=analyzeObs(cs);
   if(n>=2){
     h+=`<h4>Cartas vecinas</h4><p class="small muted">Según sus elementos, en el orden de la tirada.</p>`;
     for(let i=0;i<n-1;i++){
@@ -1055,9 +1135,9 @@ function analyze(r){
 
 /* ============ CARTAS ============ */
 function renderCartas(){
-  const tabs=[["estudiar","Estudiar"],["catalogo","Catálogo"],["combos","Combinaciones"]];
+  const tabs=[["estudiar","Estudiar"],["catalogo","Catálogo"],["combos","Combinaciones"],["guia","Guía"]];
   $("#main").innerHTML=`<div class="seg" role="group" style="margin-bottom:16px">${tabs.map(([k,n])=>`<button data-act="cardsTab" data-tab="${k}" aria-pressed="${st.cardsTab===k}">${n}</button>`).join("")}</div><div id="cbody"></div>`;
-  ({estudiar:renderStudy,catalogo:renderCatalog,combos:renderCombos})[st.cardsTab]();
+  ({estudiar:renderStudy,catalogo:renderCatalog,combos:renderCombos,guia:renderGuide})[st.cardsTab]();
 }
 const groupCards=g=>g==="todas"?CARDS:CARDS.filter(c=>c.suit===g);
 const mastered=id=>{const s=DB.study[id];return s&&s.ok>=2&&s.ok-s.fail>=2};
@@ -1162,7 +1242,7 @@ function cardSheet(id){
   const tabs=[["significado","Significado"],["simbolos","Símbolos"],["corresp","Correspondencias"],["mio","Lo mío"]];
   let body="";
   if(t==="significado")body=`<div class="reveal"><span class="label">Al derecho</span><p>${esc(c.up)}</p><span class="label">Invertida</span><p>${esc(c.rev)}</p><span class="label">En el amor</span><p>${esc(c.amor)}</p><span class="label">En el trabajo</span><p>${esc(c.trab)}</p><span class="label">Consejo</span><p>${esc(c.cons)}</p></div>`;
-  else if(t==="simbolos")body=`<div class="reveal"><span class="label">Escena y símbolos</span><p>${esc(c.sym)}</p>${c.col?`<span class="label">Colores</span><p>${esc(c.col)}</p>`:""}<span class="label">Historia</span><p>${esc(c.hist)}</p></div>`;
+  else if(t==="simbolos")body=`<div class="reveal"><span class="label">Escena y símbolos</span><p>${esc(c.sym)}</p>${c.col?`<span class="label">Colores</span><p>${esc(c.col)}</p>`:""}<span class="label">Historia</span><p>${esc(c.hist)}</p></div>`+obsSectionHtml(id);
   else if(t==="corresp")body=`<div class="reveal"><span class="label">Elemento</span><p>${c.elem?EL[c.elem]:"Sin elemento propio: está regida por un planeta."}${c.court?` En las figuras de la corte se lee como ${esc(c.court.toLowerCase())}.`:""}</p>
     ${c.astro?`<span class="label">Astrología</span><p>${esc(c.astro)}${c.arc==="menor"?" (decanato)":""}</p>`:""}
     ${c.heb?`<span class="label">Letra hebrea</span><p><span class="heb">${c.heb[1]}</span> ${c.heb[0]}, “${c.heb[2]}”</p>`:""}
@@ -1748,7 +1828,7 @@ function renderBonds(){
   const S=synastry(me,o),harm=S.asp.filter(a=>a.name==="trígono"||a.name==="sextil").length,tens=S.asp.filter(a=>a.name==="cuadratura"||a.name==="oposición").length,conj=S.asp.filter(a=>a.name==="conjunción").length;
   const rel=o.relation||"otro",gS=k=>S.A.planets.find(p=>p.key===k),oS=k=>S.B.planets.find(p=>p.key===k);
   const pairEl=(k,lbl)=>{const a=SIGN_EL[sgn(gS(k).lon)%4],b=SIGN_EL[sgn(oS(k).lon)%4],r=relation(a,b);return `<p class="small">${lbl}: tú en ${SIGNS[sgn(gS(k).lon)][0]}, ${esc(o.name)} en ${SIGNS[sgn(oS(k).lon)][0]}. ${r[1]}: ${r[2]}.</p>`};
-  const readings=DB.readings.filter(r=>[r.question,r.interp,r.followup].join(" ").toLowerCase().includes(o.name.toLowerCase()));
+  const readings=DB.readings.filter(r=>r.personChart===o.id||(r.person&&r.person.trim().toLowerCase()===o.name.toLowerCase())||[r.question,r.interp,r.followup].join(" ").toLowerCase().includes(o.name.toLowerCase()));
   $("#abody").innerHTML=`<div class="row" style="margin-bottom:12px"><select data-bind="bondSel" style="flex:1;width:auto">${others.map(c=>`<option value="${c.id}" ${c.id===o.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select><button class="btn sm" data-act="chartEdit" data-id="${o.id}">Editar</button><button class="btn sm" data-act="chartNew">Nueva</button></div>
   <p class="small muted" style="margin-top:0">${RELATIONS.find(r=>r[0]===rel)[1]}. ${REL_INTRO[rel]}</p>
   <section class="panel wheelp">${biwheelSVG(S,me,o)}<p class="small muted" style="text-align:center;margin:4px 0 0">Por dentro, tu carta; por fuera, la de ${esc(o.name)}.</p></section>
@@ -1760,7 +1840,7 @@ function renderBonds(){
   ${S.inTheirs?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Tus planetas en sus casas</h3><p class="small muted">Las áreas de su vida que tú activas.</p>${S.inTheirs.map(x=>`<p class="small"><b>Tu ${PL[x.k].name} en su casa ${x.h}</b>: ${PL_SHORT[x.k]} toca ${HOUSE_TXT[x.h].replace(/\btu\b/g,"su").replace(/\btus\b/g,"sus")}.</p>`).join("")}</section>`:""}
   <section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Carta compuesta</h3><p class="small muted">Los puntos medios entre sus planetas describen la relación como si fuera una tercera persona.</p>${S.comp.map(x=>`<p class="small"><b>${x.k==="asc"?"Ascendente":PL[x.k].name} compuesto en ${SIGNS[sgn(x.l)][0]}</b>: ${COMP_TXT[x.k]} se viven ${SIGN_STYLE[sgn(x.l)]}.</p>`).join("")}</section>
   <section class="panel"><label class="field" style="margin:0"><span class="label">Mis notas sobre este vínculo</span><textarea rows="4" data-bind="bondNote" data-id="${o.id}" placeholder="Lo que observas, lo que quieres trabajar…">${esc(o.bondNote||"")}</textarea></label>
-   ${readings.length?`<h3 class="grouph">Lecturas donde aparece ${esc(o.name)}</h3>${readings.map(readingItem).join("")}`:`<p class="small muted" style="margin-bottom:0">Si escribes “${esc(o.name)}” en la pregunta o la interpretación de una lectura, aparecerá aquí.</p>`}</section>`;
+   ${readings.length?`<h3 class="grouph">Lecturas donde aparece ${esc(o.name)}</h3>${readings.map(readingItem).join("")}`:`<p class="small muted" style="margin-bottom:0">Si marcas una lectura como “Para otra persona” y eliges a ${esc(o.name)}, aparecerá aquí.</p>`}</section>`;
 }
 function biwheelSVG(S,me,o){
   const SZ=340,c=SZ/2,R=S.A,asc=R.ang?R.ang.asc:0,th=l=>(180+l-asc)*RAD,P=(l,r)=>[c+r*Math.cos(th(l)),c-r*Math.sin(th(l))];
@@ -1947,7 +2027,7 @@ const ICO={
   buscar:'<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
 };
 function menuHtml(){
-  const links=[["Diario","Calendario","lecturas","lecTab","calendario"],["Cartas","Estudiar","cartas","cardsTab","estudiar"],["Cartas","Catálogo","cartas","cardsTab","catalogo"],["Cartas","Combinaciones","cartas","cardsTab","combos"],["Grimorio","Rituales","grimorio","grimTab","rituales"],["Grimorio","Calendario de rituales","grimorio","ritMode","cal"],["Grimorio","Tradiciones","grimorio","ritMode","trad"],["Grimorio","Intenciones","grimorio","grimTab","intenciones"],["Grimorio","Correspondencias","grimorio","grimTab","corresp"],["Astrología","Mi carta","astro","astroTab","carta"],["Astrología","Tránsitos","astro","astroTab","transitos"],["Astrología","Vínculos","astro","astroTab","vinculos"],["Astrología","Cielo","astro","astroTab","cielo"]];
+  const links=[["Diario","Calendario","lecturas","lecTab","calendario"],["Cartas","Estudiar","cartas","cardsTab","estudiar"],["Cartas","Catálogo","cartas","cardsTab","catalogo"],["Cartas","Combinaciones","cartas","cardsTab","combos"],["Cartas","Guía visual","cartas","cardsTab","guia"],["Grimorio","Rituales","grimorio","grimTab","rituales"],["Grimorio","Calendario de rituales","grimorio","ritMode","cal"],["Grimorio","Tradiciones","grimorio","ritMode","trad"],["Grimorio","Intenciones","grimorio","grimTab","intenciones"],["Grimorio","Correspondencias","grimorio","grimTab","corresp"],["Glosario","Lectura de tiradas","glosario","gloCat","patrones"],["Astrología","Mi carta","astro","astroTab","carta"],["Astrología","Tránsitos","astro","astroTab","transitos"],["Astrología","Vínculos","astro","astroTab","vinculos"],["Astrología","Cielo","astro","astroTab","cielo"]];
   return `<button class="searchbar" data-act="searchOpen">${ICO.buscar}<span>Buscar en todo el grimorio</span></button>
   <div class="mgrid">
    <button class="mtile" data-act="menuGo" data-view="astro">${ICO.astro}<span>Astrología</span></button>
@@ -1969,7 +2049,7 @@ function searchResults(){
   const q=st.gq.trim().toLowerCase();if(q.length<2)return `<p class="muted small">Escribe al menos dos letras. Busca en lecturas, cartas, notas, rituales, tradiciones, intenciones, correspondencias, combinaciones, cartas natales y el glosario.</p>`;
   const has=(...xs)=>xs.join(" ").toLowerCase().includes(q),groups=[];
   const add=(title,items,fn)=>{if(items.length)groups.push(`<h3 class="grouph">${title} <span class="muted small">(${items.length})</span></h3>${items.slice(0,6).map(fn).join("")}${items.length>6?`<p class="small muted">y ${items.length-6} más…</p>`:""}`)};
-  add("Lecturas",DB.readings.filter(r=>has(r.deck?DECKS[r.deck]:"",r.question,r.interp,r.followup,readingSpreadName(r),(r.tags||[]).join(" "),r.cards.map(c=>CARD[c.id]?.name).join(" "))).sort((a,b)=>b.date.localeCompare(a.date)),r=>`<button class="ritem compact" data-act="openReading" data-id="${r.id}"><div class="rtop"><span>${fmtDate(r.date)}</span></div><div class="rq">${esc(r.question||readingSpreadName(r))}</div></button>`);
+  add("Lecturas",DB.readings.filter(r=>has(r.person||"",r.deck?DECKS[r.deck]:"",r.question,r.interp,r.followup,readingSpreadName(r),(r.tags||[]).join(" "),r.cards.map(c=>CARD[c.id]?.name).join(" "))).sort((a,b)=>b.date.localeCompare(a.date)),r=>`<button class="ritem compact" data-act="openReading" data-id="${r.id}"><div class="rtop"><span>${fmtDate(r.date)}</span></div><div class="rq">${esc(r.question||readingSpreadName(r))}</div></button>`);
   add("Cartas",CARDS.filter(c=>has(c.name,c.up,c.rev,c.sym,c.col,c.astro,DB.notes[c.id])),c=>`<button class="ritem compact" data-act="cardInfo" data-id="${c.id}"><div class="row" style="flex-wrap:nowrap">${face(c.id,false,"s")}<div><div class="rq" style="margin:0">${esc(c.name)}</div><div class="small muted">${esc(trunc(c.up,70))}</div></div></div></button>`);
   add("Cartas del día",Object.entries(DB.daily).filter(([k,d])=>has(d.note,CARD[d.id].name)).sort((a,b)=>b[0].localeCompare(a[0])),([k,d])=>`<button class="ritem compact" data-act="goDay" data-k="${k}"><div class="rtop"><span>${fmtDate(k)}</span></div><div class="rq">${esc(CARD[d.id].name)}</div>${d.note?`<div class="small muted">${esc(trunc(d.note,90))}</div>`:""}</button>`);
   add("Rituales",DB.rituals.filter(r=>has(r.title,r.type,r.purpose,r.ingredients,r.steps,r.notes,(r.logs||[]).map(l=>l.notes+" "+l.followup).join(" "))),r=>`<button class="ritem compact" data-act="ritualOpen" data-id="${r.id}"><div class="rtop"><span>${esc(r.type)}</span></div><div class="rq">${esc(r.title)}</div></button>`);
@@ -1990,7 +2070,7 @@ function homeSettingsHtml(){
 }
 
 /* ============ Gestos: deslizar entre pestañas ============ */
-const SWIPE_TABS={lecturas:["lecTab",["lista","calendario"]],cartas:["cardsTab",["estudiar","catalogo","combos"]],grimorio:["grimTab",["rituales","intenciones","corresp"]],astro:["astroTab",["carta","transitos","vinculos","cielo"]],glosario:["gloMode",["leer","estudiar"]]};
+const SWIPE_TABS={lecturas:["lecTab",["lista","calendario"]],cartas:["cardsTab",["estudiar","catalogo","combos","guia"]],grimorio:["grimTab",["rituales","intenciones","corresp"]],astro:["astroTab",["carta","transitos","vinculos","cielo"]],glosario:["gloMode",["leer","estudiar"]]};
 (function(){
   let sx=0,sy=0,t0=0,tgt=null;
   const main=document.getElementById("main");
@@ -2148,7 +2228,7 @@ function tradSheet(id){
 }
 
 /* ============ GLOSARIO ============ */
-const GLO_CATS=[["simbolos","Símbolos"],["planetas","Planetas y puntos"],["signos","Signos"],["aspectos","Aspectos"],["carta","La carta natal"],["cielo","El cielo en movimiento"],["tarot","Tarot"],["magia","Magia y práctica"]];
+const GLO_CATS=[["simbolos","Símbolos"],["planetas","Planetas y puntos"],["signos","Signos"],["aspectos","Aspectos"],["carta","La carta natal"],["cielo","El cielo en movimiento"],["tarot","Tarot"],["patrones","Lectura de tiradas"],["magia","Magia y práctica"]];
 const GLO=[];
 const G=(id,cat,t,g,s,b,d,r)=>GLO.push({id,cat,t,g:g||"",s,b,d:d||[],r:r||[]});
 
@@ -2404,6 +2484,72 @@ G("grimorio-t","magia","Grimorio y Libro de las Sombras","","El libro de trabajo
 G("brujeria","magia","Brujería, Wicca y magia ceremonial","","Tres caminos distintos.",
  ["La brujería tradicional o popular abarca prácticas transmitidas en familias y comunidades: hierbas, limpiezas, amuletos, rezos. Varía muchísimo según la región.","La Wicca es una religión neopagana fundada en Inglaterra a mediados del siglo XX, con Gerald Gardner como figura central. Celebra los ciclos de la naturaleza y venera a una diosa y un dios.","La magia ceremonial, como la de la Golden Dawn, es una tradición más intelectual y ritualizada, con cábala, astrología y fórmulas precisas."],[],["golden-dawn","grimorio-t"]);
 
+/* ---- Lectura de tiradas (patrones) ---- */
+G("pt-todo","patrones","Leer la tirada como un todo","","Antes de leer carta por carta, mira el conjunto.",
+ ["Una tirada no es solo una suma de significados sueltos. Antes de leer cada posición, muchas lectoras se toman un momento para mirar la tirada entera, como si fuera una sola imagen: qué colores dominan, si hay muchas figuras humanas o pocas, si las cartas parecen luminosas o pesadas, si hay movimiento o quietud.","Esta primera impresión suele contener el tono general de la respuesta. Una tirada llena de cielos amarillos y figuras de pie se siente distinta de una llena de noche, espadas y figuras tumbadas, aunque las posiciones sean las mismas.","Las entradas de esta categoría describen patrones que se suelen observar: orientación, miradas, colores, repeticiones y contrastes. Son herramientas para afinar la observación, no reglas: cada lectora desarrolla su propia forma de usarlas, y tu experiencia anotada en el diario es la mejor guía."],[],["pt-preguntas","pt-historia","pt-invertidas"]);
+G("pt-preguntas","patrones","Preguntas para observar una carta","","Un método sencillo para mirar antes de interpretar.",
+ ["Cuando una carta no te dice nada, o cuando quieres ir más allá del significado memorizado, ayuda hacerle preguntas concretas a la imagen. ¿Qué está haciendo la figura? ¿Hacia dónde mira? ¿Está quieta o en movimiento? ¿Está sola o acompañada? ¿Es de día o de noche? ¿Qué color domina? ¿Qué hay en el suelo y qué hay en el cielo?","Luego pregúntate qué parte de la imagen te llama la atención primero, y por qué. Ese detalle suele ser el que tiene algo que decirte en esa lectura concreta.","Este ejercicio es la base del modo de estudio “Con tu mazo físico” de la app: escribir lo que ves antes de leer la ficha entrena la intuición y te ayuda a recordar las cartas por su imagen, no solo por sus palabras clave."],[],["pt-todo","pt-mirada"]);
+G("pt-historia","patrones","Contar la historia de la tirada","","Las cartas se leen en relación, como escenas de un relato.",
+ ["Una forma muy usada de leer es unir las cartas en una narración. En tiradas en línea, se lee de izquierda a derecha, como un texto: lo que viene antes condiciona lo que viene después. En tiradas con forma, como la cruz celta, el orden numérico de las posiciones marca el hilo.","Fíjate en cómo pasa la energía de una carta a la siguiente: ¿hay continuidad, como un movimiento que sigue, o hay un corte brusco? ¿La historia va de la dificultad a la calma, o al revés?","La última carta de una tirada suele leerse como el punto de llegada. Si la historia que cuentan las cartas no coincide con lo que esperabas, ese desajuste también es información."],[],["pt-mirada-izq-der","pt-progresion"]);
+
+G("pt-invertidas","patrones","Muchas cartas invertidas","","Cuando más de la mitad de la tirada sale al revés.",
+ ["Una tirada con muchas cartas invertidas suele leerse como una situación en la que la energía no fluye con libertad: algo está bloqueado, retrasado, reprimido o vivido hacia adentro. También puede indicar que la persona aún no está lista para actuar, o que el asunto se está procesando en privado.","Algunas lectoras lo interpretan como una señal de que la pregunta no está bien planteada, o de que conviene esperar y volver a preguntar más adelante. Otras simplemente leen cada invertida con su significado propio y miran el conjunto como un periodo de revisión.","Si una tirada sale casi entera invertida, hay quien le da la vuelta completa al mazo y lee la tirada al derecho, entendiendo que la persona “estaba del otro lado”. Es una práctica personal: anota en tu diario qué te funciona."],[["En la app","El asistente de interpretación avisa cuando la mitad o más de las cartas están invertidas."]],["invertida","pt-derecho","pt-invertida-posicion"]);
+G("pt-derecho","patrones","Todas las cartas al derecho","","Cuando no aparece ninguna invertida.",
+ ["Si usas invertidas y en una tirada de varias cartas todas salen al derecho, suele leerse como una situación clara y visible, en la que las energías se expresan abiertamente y sin grandes bloqueos internos.","No significa que todo sea positivo: una Torre o un Diez de Espadas al derecho siguen siendo cartas fuertes. Lo que indica es que lo que muestran está a la vista y en movimiento, no escondido.","Si no usas invertidas en tu práctica, este patrón no aplica: la claridad o el bloqueo se leen entonces por las cartas mismas y por sus vecinas."],[],["pt-invertidas","dignidades-elementales"]);
+G("pt-invertida-posicion","patrones","Invertidas en posiciones concretas","","Dónde cae la invertida también cuenta.",
+ ["No es lo mismo una carta invertida en la posición del pasado que en la del futuro. En el pasado suele hablar de algo que no se resolvió del todo o que todavía pesa. En el presente, de lo que está bloqueado ahora. En el futuro o el resultado, de algo que podría retrasarse, o que depende de cambiar una actitud.","En la posición de consejo, una invertida puede leerse como lo que conviene dejar de hacer, o como el significado de la carta que hay que trabajar hacia adentro.","Si las invertidas se concentran en un lado de la tirada (por ejemplo, todas en las posiciones del pasado), la historia puede estar mostrando un proceso que va del bloqueo a la apertura, o al revés."],[],["pt-invertidas","tirada"]);
+
+G("pt-mirada","patrones","Hacia dónde miran las figuras","","La dirección de la mirada como pista de lectura.",
+ ["En el Rider-Waite-Smith casi todas las cartas tienen figuras con una dirección clara: miran a un lado, de frente, de espaldas, hacia arriba o hacia abajo. Muchas lectoras usan esa dirección como información extra: hacia dónde va la atención, la energía o el deseo de la carta.","Es una convención de lectura, no una regla del tarot, y cada tradición la usa a su manera. Funciona especialmente bien en tiradas en línea, donde las cartas están una al lado de la otra y se puede ver si “se miran” o se ignoran.","Para practicar, saca una tirada y, antes de leer los significados, anota solo hacia dónde mira cada figura. Después compara esa lectura de miradas con la lectura de significados: muchas veces se complementan."],[],["pt-mirada-izq-der","pt-mirada-frente","pt-mirada-arriba","pt-miradas-entre"]);
+G("pt-mirada-izq-der","patrones","Mirar a la izquierda o a la derecha","","El pasado y el futuro según la dirección de lectura.",
+ ["Como en nuestro idioma leemos de izquierda a derecha, muchas lectoras asocian la izquierda con lo que ya pasó y la derecha con lo que viene. Una figura que mira a la izquierda puede estar mirando el pasado: recordando, revisando, aferrándose o aprendiendo de lo vivido. Una figura que mira a la derecha mira hacia el futuro: planes, deseos, movimiento hacia adelante.","En una tirada, si la mayoría de las figuras miran a la izquierda, la situación puede estar muy centrada en el pasado. Si casi todas miran a la derecha, hay impulso y expectativa. Un ejemplo claro es el Dos de Bastos o el Tres de Bastos, con figuras de espaldas mirando lejos, hacia lo que vendrá.","Algunas lectoras invierten esta convención o no la usan. Si te resuena, pruébala unas semanas y anota en tus lecturas si se cumple para ti."],[],["pt-mirada","pt-historia"]);
+G("pt-mirada-frente","patrones","De frente o de espaldas","","Presencia directa o algo que se retira.",
+ ["Una figura que mira de frente, hacia quien lee, suele sentirse como una energía directa y presente: algo que te habla a ti, que te confronta o te invita. Muchos reyes y reinas, El Emperador o La Justicia miran de frente con autoridad.","Una figura de espaldas puede leerse como algo que se aleja, que se oculta o que mira hacia otro lugar: el Ocho de Copas, que abandona sus copas, o el Seis de Espadas, que se va en barca. También puede hablar de introspección o de algo que aún no se muestra.","Si en tu tirada hay muchas figuras de espaldas, puede haber distancia, secretos o despedidas en el asunto. Si muchas miran de frente, la situación pide presencia y enfrentar las cosas directamente."],[],["pt-mirada","pt-miradas-entre"]);
+G("pt-mirada-arriba","patrones","Mirar hacia arriba o hacia abajo","","Aspiración o introspección, ideales o realidad.",
+ ["Las figuras que miran hacia arriba, como El Loco o la mujer de La Estrella al levantar el rostro en algunas versiones, suelen asociarse con ideales, inspiración, fe o, a veces, con no mirar dónde se pisa.","Las figuras que miran hacia abajo suelen relacionarse con la introspección, la concentración, la tristeza o el contacto con lo material: el Cinco de Copas mira las copas derramadas, el Ocho de Oros mira su trabajo, El Ermitaño mira el camino a sus pies.","En una tirada, un predominio de miradas hacia arriba puede hablar de esperanza o de idealización. Muchas miradas hacia abajo, de un momento de recogimiento, duelo o trabajo concentrado."],[],["pt-mirada"]);
+G("pt-miradas-entre","patrones","Cartas que se miran o se dan la espalda","","La relación entre vecinas según sus miradas.",
+ ["Cuando dos cartas vecinas tienen figuras que se miran entre sí, muchas lectoras lo leen como una conexión entre esas dos situaciones o personas: diálogo, atracción, influencia mutua.","Cuando se dan la espalda, puede indicar desconexión, conflicto, caminos que se separan o temas que no se hablan. En tiradas de relación, este detalle es especialmente revelador.","Si la figura de la carta del resultado mira hacia fuera de la tirada, hay quien lo interpreta como que la energía se va del asunto o se dirige a algo nuevo; si mira hacia el centro de la tirada, como que el tema sigue abierto."],[],["pt-mirada","pt-mirada-frente","sinastria"]);
+G("pt-direccion-objetos","patrones","Hacia dónde apuntan los objetos","","Espadas, bastos, caminos y manos que señalan.",
+ ["No solo las miradas tienen dirección. Las espadas, los bastos, los caminos, los ríos y las manos también señalan hacia algún lugar. Una espada que apunta hacia la carta vecina puede leerse como un conflicto o una decisión que la afecta; un camino que se pierde hacia un lado, como el rumbo que toma la situación.","El Mago señala con una mano al cielo y con la otra a la tierra; el As de cualquier palo aparece como una mano que sale de una nube y ofrece algo. Fíjate hacia qué carta queda ofrecido ese regalo en tu tirada.","Igual que con las miradas, es una herramienta de observación: úsala cuando la imagen te llame la atención, no como obligación."],[],["pt-mirada","pt-simbolos"]);
+
+G("pt-colores-cielo","patrones","Los colores del cielo","","Amarillo, azul, gris y negro en el fondo de las cartas.",
+ ["En el Rider-Waite-Smith, el color del cielo o del fondo es una de las pistas más visibles. El amarillo, muy frecuente, se suele leer como conciencia, claridad, optimismo y energía activa: El Mago, La Emperatriz, La Fuerza o el Seis de Bastos.","El azul claro sugiere calma, paz, apertura y claridad emocional, como en El Sol, Los Enamorados o el Diez de Copas. El gris suele asociarse con neutralidad, sabiduría silenciosa o, según la carta, con dificultad e incertidumbre, como en El Ermitaño o el Cinco de Oros.","El negro o la noche aparecen en cartas de crisis, misterio o sombra: La Torre, El Diablo, el Nueve de Espadas. Si en tu tirada predominan los cielos amarillos, la situación tiende a la luz y a la acción; si predominan los grises y negros, puede ser un momento de prueba, introspección o incertidumbre."],[["Amarillo","Conciencia, optimismo, energía, claridad"],["Azul","Calma, paz, apertura, emociones claras"],["Gris","Neutralidad, sabiduría, pausa o dificultad"],["Negro","Crisis, misterio, sombra, lo desconocido"]],["pt-colores","pt-luz-sombra"]);
+G("pt-colores","patrones","Los colores de ropas y objetos","","El simbolismo de los colores dentro de la escena.",
+ ["Más allá del cielo, los colores de las ropas, flores y objetos aportan matices. Estos significados vienen en parte del simbolismo de la Golden Dawn y en parte de asociaciones culturales, así que tómalos como punto de partida.","Rojo: pasión, acción, deseo, vitalidad, a veces ira (El Emperador, el manto de El Mago). Blanco: pureza, verdad, espíritu, inocencia (la rosa de El Loco, la túnica de La Templanza). Verde: crecimiento, naturaleza, fertilidad, esperanza. Azul oscuro: intuición, emociones profundas, lo espiritual (La Sacerdotisa). Morado: sabiduría, espiritualidad, realeza. Naranja: entusiasmo, energía, creatividad. Dorado: éxito, abundancia, lo divino. Marrón: lo terrenal, lo práctico, la estabilidad.","Si un color se repite en varias cartas de tu tirada, por ejemplo mucho rojo, puede estar marcando el tono de la situación: en este caso, mucha pasión o mucha acción en juego."],[["Rojo","Pasión, acción, deseo"],["Blanco","Pureza, verdad, espíritu"],["Verde","Crecimiento, fertilidad, esperanza"],["Azul oscuro","Intuición, profundidad"],["Morado","Sabiduría, espiritualidad"],["Naranja","Entusiasmo, creatividad"],["Dorado","Éxito, abundancia"],["Marrón","Lo terrenal y práctico"]],["pt-colores-cielo","correspondencias"]);
+G("pt-luz-sombra","patrones","Cartas luminosas junto a cartas oscuras","","El contraste de luz y sombra en la tirada.",
+ ["Cuando en una misma tirada aparecen cartas muy luminosas (El Sol, La Estrella, el Diez de Copas) junto a cartas muy oscuras (La Torre, el Diez de Espadas, el Nueve de Espadas), el contraste en sí mismo es un mensaje.","Puede hablar de una transición: salir de una crisis hacia la calma, o una alegría que esconde una preocupación. El orden importa: si la luz viene después de la sombra, la historia apunta a la recuperación; si la sombra viene después, a algo que conviene atender.","También puede reflejar emociones mezcladas, o dos áreas de la vida que van en direcciones distintas. Pregúntate cuál de las dos cartas pesa más para ti en este momento."],[],["pt-colores-cielo","pt-espejo","pt-historia"]);
+
+G("pt-mayores","patrones","Muchos arcanos mayores","","Cuando las grandes fuerzas dominan la tirada.",
+ ["En un mazo de 78 cartas, los arcanos mayores son un 28%, así que en una tirada de diez cartas lo esperable es que salgan dos o tres. Cuando salen muchos más, la tradición dice que el asunto es importante: no es algo cotidiano, sino un proceso de fondo, un cambio de etapa o una lección de vida.","También puede indicar que hay fuerzas que escapan a tu control, o que la situación está en manos del destino, del tiempo o de procesos más grandes que una decisión puntual.","Cuando no aparece ningún arcano mayor, ocurre lo contrario: el asunto suele estar en tus manos y se resuelve con acciones concretas del día a día. En Estadísticas puedes ver qué porcentaje de mayores te sale en general."],[["En la app","El asistente avisa cuando la mitad o más son arcanos mayores, o cuando no hay ninguno."]],["mayores","pt-corte"]);
+G("pt-corte","patrones","Muchas figuras de la corte","","Personas, roles o partes de ti en juego.",
+ ["Las sotas, caballeros, reinas y reyes suelen representar personas. Cuando aparecen varios en una tirada, puede haber mucha gente involucrada en el asunto, o influencias externas fuertes.","También se leen como facetas de tu propia personalidad o como etapas de madurez: varias sotas pueden hablar de aprendizaje y comienzos; varios caballeros, de mucho movimiento y prisa; varias reinas, de un tema emocional o de cuidado; varios reyes, de autoridad, responsabilidad o luchas de poder.","Mira hacia dónde miran esas figuras y de qué palo son: dos reyes de palos opuestos que se dan la espalda cuentan una historia muy distinta de dos reinas del mismo elemento que se miran."],[],["corte","pt-mirada","pt-numeros"]);
+G("pt-ases","patrones","Varios ases","","Muchos comienzos y mucha energía en bruto.",
+ ["El As es la semilla de su elemento: un potencial puro, un comienzo, una oportunidad que aún no tiene forma. Varios ases en una tirada suelen indicar un momento de grandes comienzos y de mucha energía disponible.","Dos ases pueden hablar de una unión o de dos oportunidades a la vez; tres, de un inicio que se va consolidando; los cuatro ases juntos son un patrón muy llamativo, asociado a un gran comienzo en todas las áreas de la vida.","Fíjate en qué palos aparecen: un As de Copas con un As de Oros puede hablar de un comienzo emocional que también es material, como una relación con proyecto de futuro."],[],["pt-numeros","palos"]);
+G("pt-palo","patrones","Un palo dominante","","Cuando la mayoría de las cartas son de un mismo palo.",
+ ["Si la mayoría de las cartas pertenecen a un palo, el asunto se juega sobre todo en el terreno de ese elemento. Muchos bastos: acción, proyectos, pasión, energía creativa. Muchas copas: emociones, relaciones, intuición. Muchas espadas: pensamientos, decisiones, conflictos, comunicación. Muchos oros: dinero, trabajo, cuerpo, asuntos materiales.","A veces el palo dominante muestra dónde está realmente el asunto, aunque la pregunta parezca de otro tema. Una pregunta sobre trabajo respondida con muchas copas puede estar diciendo que lo importante es cómo te sientes en ese trabajo.","El asistente de la app calcula los elementos de cada tirada y te avisa cuál predomina."],[],["palos","pt-palo-ausente","elementos"]);
+G("pt-palo-ausente","patrones","Un palo ausente","","Lo que falta también habla.",
+ ["En tiradas de cuatro cartas o más, la ausencia total de un palo puede ser significativa: señala un elemento que no está participando en la situación.","Sin bastos, puede faltar motivación, iniciativa o deseo. Sin copas, las emociones pueden estar quedando fuera, o se está tratando un tema sentimental de forma muy fría. Sin espadas, puede faltar análisis, una conversación honesta o una decisión clara. Sin oros, el asunto puede estar desconectado de lo práctico, o quedarse en ideas.","A veces lo que falta es justamente lo que conviene incorporar. Pregúntate cómo cambiaría la situación si añadieras ese elemento."],[],["pt-palo","elementos"]);
+G("pt-numeros","patrones","Números que se repiten","","Dos, tres o cuatro cartas con el mismo número.",
+ ["Cuando un número aparece varias veces en una tirada, su tema numerológico gana peso. Varios doses: decisiones, dualidad, relaciones. Varios cincos: crisis, conflicto o cambio. Varios sietes: pruebas, evaluación y búsqueda interior. Varios dieces: finales de ciclo.","Algunos libros antiguos dan significados específicos para cada combinación, como tres ases o cuatro reyes, con interpretaciones tradicionales que vale la pena consultar si te interesa ese enfoque.","Recuerda que los arcanos mayores también tienen número: El Carro (VII) junto a dos sietes menores refuerza todavía más el tema de ese número. Las cartas que se reducen al mismo número, como El Mago, La Rueda y El Sol, forman familias."],[["En la app","El asistente avisa cuando un número de los arcanos menores se repite."]],["numerologia","pt-progresion"]);
+G("pt-progresion","patrones","Progresión numérica","","Cuando los números suben o bajan a lo largo de la tirada.",
+ ["Leída en orden, una tirada puede mostrar números que van subiendo (por ejemplo, un Dos, luego un Cinco, luego un Nueve). Muchas lectoras lo interpretan como un proceso que avanza y madura hacia su culminación.","Si los números bajan (un Nueve, luego un Cuatro, luego un As), la historia puede estar volviendo al origen: un ciclo que se cierra para empezar de nuevo, o un asunto que se simplifica.","Las figuras de la corte se pueden pensar como una progresión propia: de la sota al rey hay un camino de madurez. Ver aparecer una sota y luego el rey del mismo palo puede hablar de un aprendizaje que llega a su dominio."],[],["pt-numeros","pt-historia","numerologia"]);
+G("pt-elementos-contraste","patrones","Elementos que contrastan","","Fuego con agua, aire con tierra.",
+ ["Según las dignidades elementales de la Golden Dawn, el fuego y el agua son opuestos, igual que el aire y la tierra. Cuando dos cartas vecinas tienen elementos opuestos, se debilitan mutuamente o muestran una tensión entre dos formas de actuar: la pasión contra la emoción, la idea contra la realidad práctica.","Cuando los elementos son afines (fuego con aire, agua con tierra), se apoyan y se potencian. Cuando son iguales, la energía se intensifica, a veces hasta el exceso.","Una tirada con muchos contrastes suele describir una situación con fuerzas encontradas, que pide integrar dos lados. Una tirada con muchos elementos afines, una situación que fluye en una dirección."],[["En la app","El asistente analiza cada par de cartas vecinas según sus elementos."]],["dignidades-elementales","pt-palo","elementos"]);
+G("pt-espejo","patrones","Cartas espejo y pares clásicos","","Cartas que se responden entre sí.",
+ ["Algunas cartas se diseñaron como respuestas o reflejos unas de otras, y cuando aparecen juntas el diálogo es muy elocuente. El Diablo y Los Enamorados tienen casi la misma composición: una figura alada sobre una pareja, una vez en libertad y otra encadenada.","Otros pares muy comentados: El Mago y La Sacerdotisa (lo activo y lo receptivo), La Emperatriz y El Emperador (nutrir y estructurar), El Sol y La Luna (claridad y misterio), La Torre y La Estrella (la caída y la esperanza que viene después), La Muerte y La Templanza (el final y la integración).","También hay pares entre menores: el Seis de Copas y el Seis de Oros hablan de dar y recibir desde lugares distintos. Puedes anotar los pares que descubras en la sección de Combinaciones."],[],["pt-luz-sombra","mayores"]);
+G("pt-simbolos","patrones","Símbolos que se repiten","","Agua, lunas, montañas, caminos y otros motivos.",
+ ["El Rider-Waite-Smith repite ciertos símbolos a lo largo del mazo, y cuando varios aparecen en una misma tirada vale la pena prestarles atención. El agua (ríos, mares, estanques) suele hablar de emociones e inconsciente. Las lunas, de intuición, ciclos y lo oculto. Las montañas, de metas lejanas, retos o sabiduría.","Los caminos sugieren un rumbo o una elección; los castillos y ciudades, seguridad, metas alcanzadas o lo que se deja atrás; las coronas, autoridad y logro; los pájaros, mensajes y libertad; los leones, fuerza y valor; las rosas y lirios, el deseo y la pureza.","No hace falta memorizarlos: cuando un símbolo te llame la atención en varias cartas, pregúntate qué te sugiere a ti. Las fichas de cada carta en la app describen sus símbolos principales."],[],["pt-paisaje","pt-direccion-objetos"]);
+G("pt-paisaje","patrones","Paisajes y escenarios","","Interior o exterior, mar, desierto o ciudad.",
+ ["El escenario de cada carta también se puede leer. Las escenas en interiores (el Cuatro de Espadas, el Nueve de Espadas, el Ocho de Oros) suelen hablar de procesos privados o internos; las escenas al aire libre, de lo que ocurre en el mundo y a la vista.","Los paisajes fértiles y verdes hablan de crecimiento y abundancia; los desiertos y montañas áridas, de prueba o de esfuerzo; el mar, de lo emocional y lo desconocido; las ciudades y castillos, de lo social, lo establecido o lo que se ha construido.","Si tu tirada tiene muchos interiores, el asunto puede ser íntimo o poco visible; si tiene muchos paisajes abiertos, más expuesto y relacionado con los demás."],[],["pt-simbolos","pt-colores-cielo"]);
+
+G("pt-saltan","patrones","Cartas que saltan al barajar","","Las que se caen del mazo por su cuenta.",
+ ["Mientras barajas, a veces una carta salta o se cae del mazo. Muchas lectoras la consideran un mensaje extra: algo que pide ser visto aunque no estuviera en la tirada.","Hay quien la lee como una carta de aclaración para la pregunta, y hay quien la devuelve al mazo sin darle importancia. Algunas la colocan a un lado y la leen al final, como una nota al margen.","Es una costumbre, no una regla. Si quieres registrarlas, puedes añadirlas en una tirada libre o anotarlas en la interpretación."],[],["pt-fondo"]);
+G("pt-fondo","patrones","La carta del fondo del mazo","","La raíz oculta de la pregunta.",
+ ["Después de barajar y cortar, algunas lectoras miran la carta que quedó en el fondo del mazo. Se suele leer como la raíz o la base escondida del asunto: lo que está debajo de todo y no se ve a primera vista.","Otras la usan como un consejo final, o como la carta que resume el estado de ánimo de quien pregunta. Igual que con las cartas que saltan, es una práctica opcional que cada quien adopta o no."],[],["pt-saltan","pt-quintaesencia"]);
+G("pt-quintaesencia","patrones","Quintaesencia","","Sumar las cartas para obtener una carta resumen.",
+ ["La quintaesencia es una técnica en la que se suman los números de las cartas de la tirada y se reduce el resultado hasta obtener un arcano mayor, que funciona como síntesis o consejo de toda la lectura.","Lo habitual es sumar los números de los arcanos menores (el As vale 1) y de los mayores, y no contar las figuras de la corte, aunque hay variantes que les dan valor. Si el total es mayor que 22, se suman sus cifras hasta que quede entre 1 y 22 (algunas versiones cuentan el 22 como El Loco).","Por ejemplo, Tres de Copas (3) + Siete de Espadas (7) + La Estrella (17) suman 27; 2 + 7 da 9, El Ermitaño. Esa carta no se coloca en la tirada: se lee como el tema de fondo o el consejo general."],[],["numerologia","pt-fondo"]);
+
+GLO.find(x=>x.id==="pt-todo").r=GLO.filter(x=>x.cat==="patrones"&&x.id!=="pt-todo").map(x=>x.id);
 /* ---- Interfaz ---- */
 const GLO_BY=Object.fromEntries(GLO.map(x=>[x.id,x]));
 const GLO_SYMBOLS=[["Planetas",["pl-sol","pl-luna","pl-mercurio","pl-venus","pl-marte","pl-jupiter","pl-saturno","pl-urano","pl-neptuno","pl-pluton"]],["Otros puntos",["nodos","quiron","lilith","fortuna","ascendente","descendente","mediocielo","fondocielo","retrogrado"]],["Signos",ZOD.map(z=>"sg-"+z.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase())],["Aspectos",["as-conjuncion","as-sextil","as-cuadratura","as-trigono","as-oposicion","as-quincuncio","as-semisextil","as-semicuadratura","as-sesquicuadratura","as-quintil"]]];
@@ -2415,6 +2561,7 @@ function renderGlosario(){
   <div class="chips scroll" style="margin:12px 0">${[["","Todo"]].concat(GLO_CATS).map(([k,n])=>`<button class="chip" data-act="gloCat" data-c="${k}" aria-pressed="${st.gloCat===k}">${n}</button>`).join("")}</div>
   <div id="gloList"></div>`;
   renderGloList();
+  const pc=document.querySelector('#main .chips [aria-pressed="true"]');if(pc&&pc.parentElement.scrollTo)pc.parentElement.scrollTo({left:pc.offsetLeft-pc.parentElement.offsetLeft-16});
 }
 function renderGloList(){
   const q=st.gloSearch.trim().toLowerCase(),el=$("#gloList");
@@ -2724,6 +2871,147 @@ function ritualPickSheet(){
    <button class="btn block" data-act="pickNew">Crear un ritual nuevo</button></div>`;
 }
 
+/* ============ OBSERVACIÓN DE LAS CARTAS (mirada, cielo, símbolos) ============ */
+/* [mirada, cielo, símbolos]  · null = sin indicar (dato dudoso, para completar mirando la carta) */
+const OBS_BASE={
+M0:["A","am","sol,montana,flores,animal"],M1:["F","am","flores"],M2:["F",null,"luna,columnas,agua,frutos"],M3:["F","am","arbol,agua,frutos,corona,estrellas"],
+M4:["F","na","montana,corona"],M5:["F","gr","columnas,corona"],M6:["A","az","angel,sol,montana,arbol"],M7:["F","am","castillo,estrellas,luna,agua,animal,corona"],
+M8:["B","am","leon,montana,flores"],M9:["B","gr","estrellas,montana"],M10:["N","az","nubes,angel,leon,pajaro,animal"],M11:["F",null,"columnas,corona"],
+M12:["F",null,"arbol"],M13:["D",null,"sol,agua,castillo,flores,animal,barco,corona"],M14:["B","az","angel,agua,sol,camino,montana,flores"],M15:["F","ne","fuego,animal"],
+M16:["B","ne","fuego,corona,montana"],M17:["B","az","estrellas,agua,pajaro,arbol,montana"],M18:["A",null,"luna,agua,camino,montana,castillo,animal"],M19:["F",null,"sol,flores,animal"],
+M20:["A",null,"angel,agua,montana"],M21:[null,"az","angel,leon,pajaro,animal,nubes"],
+B1:["N",null,"nubes,castillo,montana,agua,arbol"],B2:[null,null,"castillo,agua,montana,flores"],B3:["E","am","agua,montana,barco"],B4:["F","am","castillo,flores"],
+B5:["N",null,""],B6:[null,null,"animal,corona"],B7:[null,null,""],B8:["N","az","agua,castillo,arbol"],B9:[null,null,""],B10:["E",null,"castillo,arbol"],
+B11:[null,null,"montana"],B12:[null,null,"montana,animal"],B13:["F",null,"leon,flores,animal"],B14:[null,null,"leon,corona"],
+C1:["N",null,"nubes,agua,pajaro,flores"],C2:[null,null,"leon,castillo"],C3:["N",null,"frutos,flores"],C4:[null,"az","arbol,nubes"],C5:["B","gr","agua,castillo"],
+C6:[null,null,"flores,castillo"],C7:[null,null,"nubes,castillo,corona,animal"],C8:["E","ne","luna,agua,montana"],C9:["F",null,""],C10:[null,"az","agua,arbol,castillo"],
+C11:[null,null,"agua"],C12:[null,null,"agua,animal,montana"],C13:["B",null,"agua,angel"],C14:[null,null,"agua,barco"],
+E1:["N","gr","nubes,montana,corona"],E2:["F","gr","agua,luna"],E3:["N","gr","nubes"],E4:["N",null,"interior"],E5:[null,null,"agua,nubes"],E6:["E",null,"agua,barco"],
+E7:[null,null,""],E8:["F","gr","agua,castillo"],E9:["B","ne","interior"],E10:["N","ne","agua,montana"],E11:[null,null,"nubes,arbol,pajaro"],E12:[null,null,"nubes,arbol,pajaro,animal"],
+E13:[null,null,"nubes,pajaro"],E14:["F",null,"nubes,arbol,pajaro"],
+O1:["N",null,"nubes,flores,camino,montana"],O2:[null,null,"agua,barco"],O3:[null,null,"interior,columnas"],O4:["F",null,"castillo"],O5:[null,"ne",""],O6:[null,null,"castillo"],
+O7:[null,null,"frutos"],O8:[null,null,"castillo"],O9:[null,"am","pajaro,frutos,flores,castillo"],O10:[null,null,"castillo,animal"],O11:[null,null,"flores,arbol,montana"],
+O12:[null,null,"animal"],O13:["B",null,"flores,animal,arbol,montana"],O14:[null,null,"frutos,animal,castillo,flores"]
+};
+const GAZE={A:"Hacia arriba",B:"Hacia abajo",F:"De frente",E:"De espaldas",I:"A la izquierda",D:"A la derecha",N:"Sin figura o sin dirección clara"};
+const SKY={am:"Amarillo",az:"Azul",gr:"Gris",ne:"Negro o noche",na:"Naranja",bl:"Blanco o claro"};
+const SYM={agua:"Agua",luna:"Luna",sol:"Sol",estrellas:"Estrellas",montana:"Montañas",camino:"Camino",castillo:"Castillo o ciudad",pajaro:"Aves",animal:"Animales",leon:"León",corona:"Corona",flores:"Flores",angel:"Ángel o ser alado",arbol:"Árboles",nubes:"Nubes",fuego:"Fuego o rayo",columnas:"Columnas",barco:"Barcos",frutos:"Frutos o cosecha",interior:"Escena en interior"};
+const SYM_TXT={agua:"emociones, inconsciente, lo que fluye",luna:"intuición, ciclos, lo oculto",sol:"claridad, vitalidad, conciencia",estrellas:"guía, esperanza, inspiración",montana:"metas lejanas, retos, sabiduría",camino:"rumbo, elección, trayecto",castillo:"seguridad, metas alcanzadas, lo establecido",pajaro:"mensajes, libertad, espíritu",animal:"instintos, lo natural",leon:"fuerza, valor, pasión",corona:"autoridad, logro, poder",flores:"deseo, belleza, crecimiento",angel:"guía espiritual, mensajes de lo alto",arbol:"crecimiento, raíces, vida",nubes:"lo mental, lo cambiante, lo que se revela",fuego:"transformación, energía, crisis",columnas:"dualidad, estructura, umbrales",barco:"viajes, transiciones, lo que llega",frutos:"cosecha, resultados, abundancia",interior:"procesos privados o internos"};
+function obsOf(id){
+  const b=OBS_BASE[id]||[null,null,""],u=(DB.cardObs||{})[id]||{};
+  return {gaze:"gaze" in u?u.gaze:b[0],sky:"sky" in u?u.sky:b[1],sym:"sym" in u?u.sym:(b[2]?b[2].split(","):[]),edited:Object.keys(u).length>0};
+}
+const flipGaze=g=>({I:"D",D:"I",A:"B",B:"A"})[g]||g;
+function obsSectionHtml(id){
+  const o=obsOf(id),sel=(bind,map,val)=>`<select data-bind="${bind}" data-id="${id}"><option value="">Sin indicar</option>${Object.entries(map).map(([k,n])=>`<option value="${k}" ${k===val?"selected":""}>${n}</option>`).join("")}</select>`;
+  return `<section class="panel" style="margin-top:14px"><h3 style="font-size:1.1rem">Lo que se ve en la carta</h3>
+   <p class="small muted" style="margin-top:2px">Datos del Rider-Waite-Smith que usa el asistente para detectar patrones. Revísalos con tu carta física y corrígelos si hace falta.${o.edited?" <b>Has corregido esta carta.</b>":""}</p>
+   <label class="field"><span class="label">Hacia dónde mira la figura principal</span>${sel("obsGaze",GAZE,o.gaze)}</label>
+   <label class="field"><span class="label">Color del cielo o del fondo</span>${sel("obsSky",SKY,o.sky)}</label>
+   <div class="field"><span class="label">Símbolos visibles</span><div class="chips">${Object.entries(SYM).map(([k,n])=>`<button class="chip" data-act="obsSym" data-id="${id}" data-s="${k}" aria-pressed="${o.sym.includes(k)}">${n}</button>`).join("")}</div></div>
+   ${o.edited?`<button class="btn ghost sm" data-act="obsReset" data-id="${id}">Volver a los datos sugeridos</button>`:""}</section>`;
+}
+function setObs(id,field,val){const all=DB.cardObs||(DB.cardObs={}),u=all[id]||(all[id]={});u[field]=val;save()}
+
+/* Detección en una tirada */
+const GAZE_MSG={I:["miran a la izquierda","en la convención de leer de izquierda a derecha, puede hablar de atención puesta en el pasado","pt-mirada-izq-der"],D:["miran a la derecha","puede hablar de impulso y atención puesta en lo que viene","pt-mirada-izq-der"],F:["miran de frente","puede hablar de energías directas que piden presencia","pt-mirada-frente"],E:["están de espaldas","puede hablar de distancia, despedidas o algo que se oculta","pt-mirada-frente"],A:["miran hacia arriba","puede hablar de ideales, esperanza o inspiración","pt-mirada-arriba"],B:["miran hacia abajo","puede hablar de introspección, concentración o recogimiento","pt-mirada-arriba"]};
+const SKY_MSG={am:"luz, claridad y energía activa",az:"calma, paz y apertura",gr:"pausa, neutralidad o incertidumbre",ne:"crisis, misterio o sombra",na:"entusiasmo y energía"};
+function analyzeObs(cs){
+  if(cs.length<2)return"";
+  const items=cs.map(c=>{const o=obsOf(c.id);return {c,gaze:c.rev?flipGaze(o.gaze):o.gaze,sky:o.sky,sym:o.sym}});
+  const out=[],links=new Set();
+  const known=items.filter(x=>x.gaze&&x.gaze!=="N");
+  if(known.length>=2){
+    const cnt={};known.forEach(x=>cnt[x.gaze]=(cnt[x.gaze]||0)+1);
+    const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+    if(top[1]>=2&&top[1]/known.length>=.5){const m=GAZE_MSG[top[0]];out.push(`En ${top[1]} de ${known.length} cartas con dato, las figuras ${m[0]}: ${m[1]}.`);links.add(m[2])}
+  }
+  for(let i=0;i<items.length-1;i++){const a=items[i],b=items[i+1];
+    if(a.gaze==="D"&&b.gaze==="I"){out.push(`${CARD[a.c.id].name} y ${CARD[b.c.id].name} se miran entre sí.`);links.add("pt-miradas-entre")}
+    if(a.gaze==="I"&&b.gaze==="D"){out.push(`${CARD[a.c.id].name} y ${CARD[b.c.id].name} se dan la espalda.`);links.add("pt-miradas-entre")}}
+  const sk=items.filter(x=>x.sky);
+  if(sk.length>=2){const cnt={};sk.forEach(x=>cnt[x.sky]=(cnt[x.sky]||0)+1);const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+    if(top[1]>=2&&top[1]/sk.length>=.5&&SKY_MSG[top[0]]){out.push(`Predominan los cielos de color ${SKY[top[0]].toLowerCase()} (${top[1]} cartas): suelen asociarse con ${SKY_MSG[top[0]]}.`);links.add("pt-colores-cielo")}
+    if(sk.some(x=>x.sky==="am"||x.sky==="az")&&sk.some(x=>x.sky==="ne")){out.push("Hay cartas luminosas y cartas oscuras en la misma tirada.");links.add("pt-luz-sombra")}}
+  const sc={};items.forEach(x=>x.sym.forEach(s=>sc[s]=(sc[s]||0)+1));
+  const rep=Object.entries(sc).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  if(rep.length){out.push("Símbolos que se repiten: "+rep.map(([s,n])=>`${SYM[s].toLowerCase()} en ${n} cartas (${SYM_TXT[s]})`).join("; ")+".");links.add("pt-simbolos")}
+  const missing=items.filter(x=>!x.gaze).length;
+  let h=`<h4>Miradas, colores y símbolos</h4><p class="small muted">Según los datos de cada carta en el Rider-Waite-Smith. Las invertidas se cuentan giradas: una figura que mira a la izquierda pasa a mirar a la derecha.</p>`;
+  h+=out.length?out.map(t=>`<p>${esc(t)}</p>`).join(""):`<p class="muted small">Sin patrones visuales destacados.</p>`;
+  if(missing)h+=`<p class="small muted">${missing} ${missing===1?"carta no tiene":"cartas no tienen"} el dato de la mirada. Puedes completarlo en su ficha, pestaña Símbolos.</p>`;
+  if(links.size)h+=`<div class="chips">${[...links].map(l=>`<button class="chip" data-act="gloOpen" data-id="${l}">${esc(GLO_BY[l].t)}</button>`).join("")}</div>`;
+  return h;
+}
+
+/* ============ GUÍA VISUAL ============ */
+const GUIDE=[
+{id:"mirada",t:"La mirada de las figuras",intro:"Muchas cartas tienen figuras que miran en una dirección clara. Esa dirección se puede leer como hacia dónde va la atención o la energía de la carta.",
+ groups:[
+  {label:"De frente: presencia directa",cards:[["M1"],["M4"],["M11"]],note:"Miran a quien lee: energías que te hablan directamente, que piden atención o asumen autoridad."},
+  {label:"De espaldas: distancia o algo que se va",cards:[["B3"],["C8"],["E6"]],note:"Figuras que se alejan o miran a lo lejos: despedidas, viajes, procesos que no se muestran."},
+  {label:"Hacia arriba: ideales y esperanza",cards:[["M0"],["M20"],["M6"]],note:"Miran al cielo o a una figura superior: inspiración, fe, llamados, o no mirar dónde se pisa."},
+  {label:"Hacia abajo: introspección",cards:[["M9"],["M8"],["M17"]],note:"Miran el suelo, el agua o lo que tienen en las manos: concentración, recogimiento, cuidado."}],
+ tip:"Saca tres cartas de tu mazo y anota solo hacia dónde mira cada figura antes de leer sus significados. Luego completa ese dato en la ficha de las cartas que no lo tengan.",links:["pt-mirada","pt-mirada-izq-der","pt-miradas-entre"]},
+{id:"cielos",t:"Los colores del cielo",intro:"El color del fondo es una de las pistas más visibles del Rider-Waite-Smith y marca el tono emocional de cada carta.",
+ groups:[
+  {label:"Amarillo: luz, conciencia y acción",cards:[["M1"],["M8"],["B3"]]},
+  {label:"Azul: calma y apertura",cards:[["M6"],["M14"],["M17"]]},
+  {label:"Gris: pausa, neutralidad o dificultad",cards:[["M9"],["E3"],["C5"]]},
+  {label:"Negro o noche: crisis y sombra",cards:[["M15"],["M16"],["E9"]]}],
+ tip:"Al terminar una tirada, mira solo los fondos: ¿predominan los cálidos o los oscuros? Esa primera impresión suele ser el tono de la respuesta.",links:["pt-colores-cielo","pt-colores"]},
+{id:"luz",t:"Luz y sombra",intro:"Cuando cartas muy luminosas y muy oscuras aparecen juntas, el orden en que salen cuenta una historia.",
+ groups:[
+  {label:"De la caída a la esperanza",cards:[["M16","","La Torre: lo que cae"],["M17","","La Estrella: la calma que sigue"]],note:"En el orden de los arcanos mayores, después de la Torre viene la Estrella: tras la crisis, la sanación."},
+  {label:"Del final a la recuperación",cards:[["E10","","Tocar fondo"],["M19","","Volver a la luz"]],note:"Si la luz viene después de la sombra, la historia apunta a recuperarse."},
+  {label:"Del misterio a la claridad",cards:[["M18","","La Luna: dudas"],["M19","","El Sol: todo se ve"]]}],
+ tip:"Si en tu tirada la carta oscura viene al final, no la leas como condena: pregúntate qué te pide atender.",links:["pt-luz-sombra","pt-historia"]},
+{id:"espejo",t:"Cartas espejo",intro:"Algunas cartas se diseñaron como reflejos unas de otras. Cuando salen juntas, conversan.",
+ groups:[
+  {label:"Libertad y atadura",cards:[["M6","","Los Enamorados"],["M15","","El Diablo"]],note:"La misma composición: una figura alada sobre una pareja. En una se elige libremente; en la otra hay cadenas, aunque flojas."},
+  {label:"Lo activo y lo receptivo",cards:[["M1","","El Mago"],["M2","","La Sacerdotisa"]],note:"Uno actúa y manifiesta hacia afuera; la otra guarda y sabe hacia adentro."},
+  {label:"Nutrir y estructurar",cards:[["M3","","La Emperatriz"],["M4","","El Emperador"]]},
+  {label:"Dar y recibir",cards:[["C6","","Seis de Copas"],["O6","","Seis de Oros"]],note:"Dos formas de dar: desde el afecto y la memoria, o desde los recursos y el equilibrio."}],
+ tip:"Cuando descubras un par que te hable, anótalo en Cartas → Combinaciones.",links:["pt-espejo"]},
+{id:"ases",t:"Los ases: cuatro semillas",intro:"Cada As es una mano que sale de una nube y ofrece el elemento en estado puro: un comienzo que aún no tiene forma.",
+ groups:[{cards:[["B1","","Fuego: un impulso"],["C1","","Agua: un sentimiento"],["E1","","Aire: una idea"],["O1","","Tierra: una oportunidad"]]}],
+ tip:"Fíjate hacia qué carta vecina queda ofrecida la mano del As en tu tirada.",links:["pt-ases","palos"]},
+{id:"copas",t:"Un palo como una historia: las copas",intro:"Los números de cada palo se pueden leer como un viaje. Este es el viaje emocional de las copas, del primer sentimiento a la plenitud.",
+ groups:[{cards:Array.from({length:10},(_,i)=>["C"+(i+1),"",(i?(i+1)+": ":"As: ")+"__UP__"])}],
+ tip:"Prueba a contar esta historia en voz alta con tu mazo, y luego hazlo con otro palo.",links:["pt-progresion","numerologia"]},
+{id:"corte",t:"La corte: cuatro etapas",intro:"Las figuras de la corte de un palo muestran cómo se madura un mismo elemento: de aprender a dominarlo.",
+ groups:[{cards:[["B11","","Sota: descubre"],["B12","","Caballero: actúa"],["B13","","Reina: lo vive por dentro"],["B14","","Rey: lo dirige afuera"]]}],
+ tip:"Cuando aparezcan varias figuras de la corte, pregúntate si son otras personas o partes de ti en distintas etapas.",links:["corte","pt-corte"]},
+{id:"simbolos",t:"Símbolos que se repiten",intro:"El mazo repite motivos a lo largo de muchas cartas. Reconocerlos ayuda a ver hilos entre cartas distintas.",
+ groups:[
+  {label:"Agua: emociones e inconsciente",cards:[["M2"],["M14"],["M17"],["C8"]]},
+  {label:"La luna: intuición y ciclos",cards:[["M2"],["M18"],["C8"],["E2"]]},
+  {label:"Leones: fuerza y valor",cards:[["M8"],["M10"],["B13"]]}],
+ tip:"Puedes ver y corregir los símbolos de cada carta en su ficha, pestaña Símbolos.",links:["pt-simbolos","pt-paisaje"]},
+{id:"invertidas",t:"Cartas invertidas",intro:"Una carta invertida se ve literalmente al revés: lo de arriba queda abajo y la mirada cambia de lado.",
+ groups:[
+  {label:"La misma carta, al derecho e invertida",cards:[["M17","","Al derecho: __UP__"],["M17","1","Invertida: __REV__"]],note:"La figura que miraba hacia abajo, al agua, ahora mira hacia arriba; la energía de la carta se bloquea o se vuelve hacia adentro."}],
+ tip:"Al girar una carta, mira qué cambia en la imagen además del significado: a veces la escena invertida te dice algo por sí misma.",links:["invertida","pt-invertidas","pt-invertida-posicion"]},
+{id:"escenarios",t:"Escenarios",intro:"El lugar donde ocurre la escena también se lee: dentro o fuera, mar, montaña o ciudad.",
+ groups:[
+  {label:"Interiores: procesos privados",cards:[["E4"],["E9"],["O3"]]},
+  {label:"El mar: lo emocional y lo que viene",cards:[["B3"],["C14"],["O2"]]},
+  {label:"Montañas: metas y retos",cards:[["M0"],["M9"],["E1"]]}],
+ tip:"Una tirada llena de interiores puede hablar de algo íntimo; una llena de paisajes abiertos, de algo expuesto.",links:["pt-paisaje"]},
+{id:"quinta",t:"Quintaesencia: un ejemplo",intro:"La quintaesencia suma los números de las cartas para obtener un arcano mayor que resume la tirada.",
+ groups:[{cards:[["C3","","Tres de Copas: 3"],["E7","","Siete de Espadas: 7"],["M17","","La Estrella: 17"]],note:"3 + 7 + 17 = 27. Como es mayor que 22, se suman sus cifras: 2 + 7 = 9."},{label:"Resultado",cards:[["M9","","El Ermitaño (IX)"]],note:"Esta carta no se coloca en la tirada: se lee como el tema de fondo o el consejo general."}],
+ tip:"Las figuras de la corte no suelen contar en la suma, aunque hay variantes que les dan valor.",links:["pt-quintaesencia"]}
+];
+function renderGuide(){
+  const open=st.guideOpen;
+  $("#cbody").innerHTML=`<p class="small muted" style="margin-top:0">Una guía visual para aprender a leer patrones con las ilustraciones del Rider-Waite-Smith. Toca una carta para abrir su ficha.</p>`+GUIDE.map(ch=>{const isOpen=open===ch.id;
+    return `<section class="panel hcard"><button class="hhead" data-act="guideToggle" data-g="${ch.id}" aria-expanded="${isOpen}"><span>${esc(ch.t)}</span>${CHEV}</button>${isOpen?`<div class="hbody">
+     <p>${esc(ch.intro)}</p>
+     ${ch.groups.map(g=>`${g.label?`<span class="label">${esc(g.label)}</span>`:""}<div class="grow">${g.cards.map(([id,rev,capt])=>{const c=CARD[id];const tx=(capt||c.name).replace("__UP__",c.up.split(",")[0]).replace("__REV__",c.rev.split(",")[0]);return `<button class="cardbtn gcard" data-act="cardInfo" data-id="${id}">${face(id,!!rev,"m")}<span>${esc(tx)}</span></button>`}).join("")}</div>${g.note?`<p class="small">${esc(g.note)}</p>`:""}`).join("")}
+     ${ch.tip?`<p class="small guidetip"><b>Para practicar:</b> ${esc(ch.tip)}</p>`:""}
+     <div class="chips">${ch.links.filter(l=>GLO_BY[l]).map(l=>`<button class="chip" data-act="gloOpen" data-id="${l}">${esc(GLO_BY[l].t)}</button>`).join("")}</div></div>`:""}</section>`}).join("");
+}
+
 /* ============ ESTADÍSTICAS ============ */
 function inRange(k){
   if(st.statsRange==="all")return true;
@@ -2779,7 +3067,9 @@ function statsTags(reads){
   const spr=Object.entries(sp).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const dk=["fisico","virtual"].map(d=>{const rs=reads.filter(r=>r.deck===d),rv=rs.filter(r=>r.outcome),hit=rs.filter(r=>r.outcome==="si").length+rs.filter(r=>r.outcome==="parcial").length*.5;return [DECKS[d],rs.length,rv.length?Math.round(hit/rv.length*100):null]});
   const deckHtml=dk[0][1]||dk[1][1]?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Por mazo</h3>${bars(dk.map(x=>[x[0],x[1]]),Math.max(dk[0][1],dk[1][1]))}${dk.some(x=>x[2]!==null)?`<p class="small muted" style="margin-top:8px">Acierto en lecturas revisadas: ${dk.filter(x=>x[2]!==null).map(x=>`${x[0].toLowerCase()} ${x[2]}%`).join(", ")}.</p>`:""}${reads.length>dk[0][1]+dk[1][1]?`<p class="small muted">${reads.length-dk[0][1]-dk[1][1]} lecturas antiguas no tienen el mazo indicado.</p>`:""}</section>`:"";
-  return `${deckHtml}${tags.length?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Por tema</h3>${bars(tags.map(t=>[t[0],t[1]]),tags[0][1])}${tags.filter(t=>t[2]!==null).length?`<p class="small muted" style="margin-top:8px">Acierto en lecturas revisadas: ${tags.filter(t=>t[2]!==null).map(t=>`${esc(t[0])} ${t[2]}%`).join(", ")}.</p>`:""}</section>`:""}
+  const fw=[["yo","Para mí"],["otra","Para otras personas"]].map(([k,n])=>{const rs=reads.filter(r=>r.forWho===k),rv=rs.filter(r=>r.outcome),hit=rs.filter(r=>r.outcome==="si").length+rs.filter(r=>r.outcome==="parcial").length*.5;return [n,rs.length,rv.length?Math.round(hit/rv.length*100):null]});
+  const forHtml=fw[0][1]||fw[1][1]?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Para quién</h3>${bars(fw.map(x=>[x[0],x[1]]),Math.max(fw[0][1],fw[1][1]))}${fw.some(x=>x[2]!==null)?`<p class="small muted" style="margin-top:8px">Acierto en lecturas revisadas: ${fw.filter(x=>x[2]!==null).map(x=>`${x[0].toLowerCase()} ${x[2]}%`).join(", ")}.</p>`:""}</section>`:"";
+  return `${forHtml}${deckHtml}${tags.length?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Por tema</h3>${bars(tags.map(t=>[t[0],t[1]]),tags[0][1])}${tags.filter(t=>t[2]!==null).length?`<p class="small muted" style="margin-top:8px">Acierto en lecturas revisadas: ${tags.filter(t=>t[2]!==null).map(t=>`${esc(t[0])} ${t[2]}%`).join(", ")}.</p>`:""}</section>`:""}
   <section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Tiradas más usadas</h3>${bars(spr,spr[0][1])}</section>`;
 }
 
@@ -2836,7 +3126,7 @@ const ACT={
   menuOpen:()=>openPop(menuHtml()),
   closePop:()=>closePop(),
   fabOpen:()=>openPop(fabHtml()),
-  menuGo:el=>{closePop();const d=el.dataset;st.view=d.view;if(d.tk)st[d.tk]=d.tv;if(d.tk==="ritMode")st.grimTab="rituales";if(d.tk==="grimTab"&&d.tv==="rituales")st.ritMode="mine";render();window.scrollTo(0,0)},
+  menuGo:el=>{closePop();const d=el.dataset;st.view=d.view;if(d.tk)st[d.tk]=d.tv;if(d.tk==="ritMode")st.grimTab="rituales";if(d.view==="glosario"){st.gloMode="leer";st.gloSearch=""}if(d.tk==="grimTab"&&d.tv==="rituales")st.ritMode="mine";render();window.scrollTo(0,0)},
   fabDo:el=>{closePop();const k=el.dataset.k;
     if(k==="reading")openEditor(null);
     else if(k==="daily"){st.view="hoy";const s=DB.settings;s.homeOff.carta=false;s.homeCollapsed.carta=false;if(!DB.daily[dkey()])ACT.drawDaily();else render();setTimeout(()=>{const c=$("[data-home=carta]");c&&c.scrollIntoView({block:"start",behavior:"smooth"})},60)}
@@ -2955,6 +3245,11 @@ const ACT={
   sheetBack:()=>popSheet(),
   cardInfo:el=>{st.cardTab="significado";const id=el.dataset.id;goSheet(()=>cardSheet(id))},
   cardTab:el=>{st.cardTab=el.dataset.t;refreshSheet()},
+  obsSym:el=>{const id=el.dataset.id,k=el.dataset.s,o=obsOf(id),a=o.sym.slice(),i=a.indexOf(k);i<0?a.push(k):a.splice(i,1);setObs(id,"sym",a);el.setAttribute("aria-pressed",i<0)},
+  obsReset:el=>{if(DB.cardObs)delete DB.cardObs[el.dataset.id];save();refreshSheet()},
+  guideToggle:el=>{const g=el.dataset.g;st.guideOpen=st.guideOpen===g?null:g;renderGuide();if(st.guideOpen){const h=$(`[data-g="${g}"]`);h&&h.scrollIntoView({block:"start",behavior:"smooth"})}},
+  setFor:el=>{draft.forWho=el.dataset.f;$("#forWho").innerHTML=forWhoHtml();renderAstroLink()},
+  toggleAstroLink:()=>{st.astroLinkOpen=!st.astroLinkOpen;renderAstroLink()},
   setDeck:el=>{draft.deck=el.dataset.d;st.deckTouched=true;$("#deckSeg").innerHTML=deckSeg()},
   drawAll:()=>{autoVirtual();const deck=shuffled(CARDS.map(c=>c.id));draft.cards.forEach((c,i)=>{c.id=deck[i];c.rev=randRev()});renderDraftCards(true)},
   drawOne:el=>{autoVirtual();const i=+el.dataset.i,used=usedIds(i),pool=CARDS.filter(c=>!used.has(c.id));draft.cards[i].id=pool[rnd(pool.length)].id;draft.cards[i].rev=randRev();renderDraftCards(true)},
@@ -3047,8 +3342,12 @@ const BIND={
   defaultReview:el=>{DB.settings.defaultReview=el.value;save()},
   badge:el=>{if(el.checked&&window.Notification&&Notification.permission!=="granted"){Notification.requestPermission().then(p=>{DB.settings.badge=p==="granted";if(p!=="granted")alert("Para mostrar el número en el ícono, iOS necesita que permitas las notificaciones de la app.");save();renderAjustes();updateBadge()});return}DB.settings.badge=el.checked;save();updateBadge()},
   dailyNote:el=>{const d=DB.daily[dkey()];if(d){d.note=el.value;saveSoon()}},
-  "d.date":el=>{draft.date=el.value;const p=$("#reviewPrev");if(p)p.textContent=reviewPreview();if(st.assistOpen)renderAssist()},
+  "d.date":el=>{draft.date=el.value;renderAstroLink();const p=$("#reviewPrev");if(p)p.textContent=reviewPreview();if(st.assistOpen)renderAssist()},
   "d.question":el=>draft.question=el.value,
+  "d.person":el=>draft.person=el.value,
+  obsGaze:el=>{setObs(el.dataset.id,"gaze",el.value||null);if(draft&&st.assistOpen)renderAssist()},
+  obsSky:el=>{setObs(el.dataset.id,"sky",el.value||null);if(draft&&st.assistOpen)renderAssist()},
+  "d.personChart":el=>{draft.personChart=el.value;const c=DB.charts.find(x=>x.id===el.value);if(c){draft.person=c.name;const i=$("[data-bind='d.person']");if(i)i.value=c.name}renderAstroLink()},
   "d.interp":el=>draft.interp=el.value,
   "d.followup":el=>draft.followup=el.value,
   "d.followDate":el=>draft.followDate=el.value,
