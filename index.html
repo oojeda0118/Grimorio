@@ -302,6 +302,10 @@ header.top h1{display:flex;align-items:center;gap:10px}
 .brand{width:32px;height:32px;border-radius:8px;flex:none}
 .deckb{display:inline-block;font-size:.72rem;border-radius:999px;padding:1px 8px;margin-right:6px;border:1px solid currentColor}
 .deckb.fisico{color:var(--gold)}.deckb.virtual{color:var(--water)}
+.tc.art{background:#f4efe2;overflow:hidden}
+.tc.art .tci{padding:0;border-radius:inherit;overflow:hidden}
+.tc.art .tci img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tc.art .tci>span{visibility:hidden}
 </style>
 </head>
 <body>
@@ -715,10 +719,25 @@ let toastT;function toast(msg){const t=$("#toast");t.textContent=msg;t.classList
 function moonForKey(k){const d=k===dkey()?new Date():fromKey(k);const mi=moonInfo(d);return {key:mi.phase.key,name:mi.phase.name,emoji:mi.phase.emoji,group:mi.phase.group,sign:mi.sign}}
 const daysAgo=k=>(fromKey(dkey())-fromKey(k))/864e5;
 
+/* Ilustraciones del Rider-Waite-Smith (carpeta cartas/ del repositorio) */
+const ART={ok:false};
+function probeArt(){
+  if(DB.settings.art==="icons"||!location.protocol.startsWith("http"))return;
+  const im=new Image();im.onload=()=>{ART.ok=true;if($("#sheet").hidden)render();else refreshSheet();cacheArt(false)};im.src="cartas/M0.jpg";
+}
+async function cacheArt(force){
+  if(!ART.ok||!("caches" in window))return;
+  try{if(!force&&localStorage.getItem("grimorio.artCached")==="78")return}catch(e){}
+  let n=0;for(const c of CARDS){try{const r=await fetch("cartas/"+c.id+".jpg");if(r.ok)n++}catch(e){}}
+  try{localStorage.setItem("grimorio.artCached",String(n))}catch(e){}
+  if(force)toast(n===78?"Las 78 ilustraciones están guardadas":"Se guardaron "+n+" de 78 ilustraciones");
+  if(st.view==="ajustes")renderAjustes();
+}
 function face(id,rev,size="m",extra=""){
   const c=CARD[id];
   if(!c) return `<div class="tc ${size} empty ${extra}" aria-label="Sin carta"></div>`;
-  return `<div class="tc ${size} ${c.cls}${rev?" rev":""} ${extra}" role="img" aria-label="${esc(c.name)}${rev?" invertida":""}"><div class="tci"><span class="tn">${c.short}</span><span class="tg">${GLYPH[c.suit]}</span><span class="tl">${esc(c.name)}</span></div></div>`;
+  const art=ART.ok&&DB.settings.art!=="icons"&&size!=="s";
+  return `<div class="tc ${size} ${c.cls}${rev?" rev":""}${art?" art":""} ${extra}" role="img" aria-label="${esc(c.name)}${rev?" invertida":""}"><div class="tci">${art?`<img src="cartas/${id}.jpg" alt="" loading="lazy" decoding="async" onerror="this.closest('.tc').classList.remove('art');this.remove()">`:""}<span class="tn">${c.short}</span><span class="tg">${GLYPH[c.suit]}</span><span class="tl">${esc(c.name)}</span></div></div>`;
 }
 const backFace=(size="l")=>`<div class="tc ${size} back" aria-hidden="true"><div class="tci"><span class="tg">${GLYPH.M}</span></div></div>`;
 const meaning=(id,rev)=>CARD[id]?(rev?CARD[id].rev:CARD[id].up):"";
@@ -2562,6 +2581,15 @@ function renderGloStudy(){
 /* ---- Comodidad de lectura ---- */
 const FONT_SCALES={s:"93.75%",m:"100%",l:"112.5%",xl:"125%"};
 function applyComfort(){const s=DB.settings;document.documentElement.style.fontSize=FONT_SCALES[s.fontScale||"m"];document.body.classList.toggle("wide",!!s.wideLines)}
+function artSettingsHtml(){
+  const s=DB.settings;let cached="0";try{cached=localStorage.getItem("grimorio.artCached")||"0"}catch(e){}
+  const status=!location.protocol.startsWith("http")?"Las ilustraciones funcionan cuando la app está publicada en GitHub Pages.":ART.ok?`✓ Ilustraciones encontradas. ${cached==="78"?"Las 78 están guardadas en el teléfono para usarlas sin internet.":"Guardadas en el teléfono: "+cached+" de 78."}`:"Todavía no encuentro la carpeta de ilustraciones en tu repositorio.";
+  return `<section class="panel"><h3 style="font-size:1.15rem">Cartas</h3>
+   <div class="seg" role="group">${[["images","Ilustraciones"],["icons","Íconos"]].map(([k,n])=>`<button data-act="artMode" data-m="${k}" aria-pressed="${(s.art||"images")===k}">${n}</button>`).join("")}</div>
+   <p class="small" style="margin-bottom:4px">${status}</p>
+   ${ART.ok&&cached!=="78"?`<button class="btn sm" data-act="artCache">Guardar todas para usar sin internet</button>`:""}
+   <p class="small muted">Ilustraciones originales de Pamela Colman Smith (1909), de dominio público, vía Wikimedia Commons. En las miniaturas se siguen usando los íconos para que se distingan mejor.</p></section>`;
+}
 function comfortSettingsHtml(){
   const s=DB.settings,L=myLoc(),opts=VE_CITIES.map(c=>[c[0]+", Venezuela",c[1],c[2]]).concat(WORLD_CITIES.map(c=>[c[0],c[1],c[2]]));
   const swOk="serviceWorker" in navigator&&navigator.serviceWorker.controller;
@@ -2760,6 +2788,7 @@ function renderAjustes(){
   $("#main").innerHTML=`<section class="panel"><span class="label">Apariencia</span>
    <div class="seg" role="group">${[["auto","Automático"],["light","Claro"],["dark","Oscuro"]].map(([k,n])=>`<button data-act="theme" data-t="${k}" aria-pressed="${s.theme===k}">${n}</button>`).join("")}</div>
    <label class="check" style="margin-top:10px"><input type="checkbox" data-bind="reversals" ${s.reversals?"checked":""}> Usar cartas invertidas al sacar al azar</label></section>
+  ${artSettingsHtml()}
   ${comfortSettingsHtml()}
   ${homeSettingsHtml()}
   <section class="panel"><h3 style="font-size:1.15rem">Lecturas</h3>
@@ -2842,6 +2871,8 @@ const ACT={
   gloMode:el=>{st.gloMode=el.dataset.m;renderGlosario()},
   gloAnswer:el=>{const q=st.gq2;if(!q||q.picked!==null)return;q.picked=el.dataset.v;const ok=q.picked===q.answer,s=DB.gloStudy[q.id]||(DB.gloStudy[q.id]={ok:0,fail:0});s[ok?"ok":"fail"]++;st.gsess.total++;if(ok)st.gsess.ok++;save();renderGloStudy()},
   gloNext:()=>{newGloQuiz();st.gq2.kind=st.gloKind;renderGloStudy()},
+  artMode:el=>{DB.settings.art=el.dataset.m;save();if(el.dataset.m==="images"&&!ART.ok)probeArt();if($("#sheet").hidden)render();renderAjustes()},
+  artCache:()=>{toast("Guardando ilustraciones…");cacheArt(true)},
   fontScale:el=>{DB.settings.fontScale=el.dataset.f;save();applyComfort();renderAjustes()},
   ritMode:el=>{st.ritMode=el.dataset.m;renderRituals()},
   rcDay:el=>{st.rcDay=el.dataset.k;document.querySelectorAll(".cal[data-cal=rit] .cday.sel").forEach(x=>x.classList.remove("sel"));el.classList.add("sel");$("#rcDetail").innerHTML=ritualDayDetail()},
@@ -3055,7 +3086,7 @@ let lastDay=dkey();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&dkey()!==lastDay){lastDay=dkey();if($("#sheet").hidden)render()}});
 window.addEventListener("pagehide",save);
 
-applyTheme();applyComfort();render();
+applyTheme();applyComfort();render();probeArt();
 </script>
 </body>
 </html>
