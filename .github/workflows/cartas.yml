@@ -1,0 +1,81 @@
+name: Descargar cartas
+
+# Descarga las 78 ilustraciones originales del tarot Rider-Waite-Smith (1909),
+# de dominio público, desde Wikimedia Commons, y las guarda en la carpeta "cartas".
+# Se ejecuta a mano desde la pestaña Actions con el botón "Run workflow".
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cartas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Descargar ilustraciones desde Wikimedia Commons
+        shell: bash
+        run: |
+          mkdir -p cartas
+          UA="GrimorioApp/1.0 (aplicación personal en GitHub Pages)"
+          fallas=()
+
+          bajar () {
+            local id="$1"; shift
+            for nombre in "$@"; do
+              local n="${nombre// /_}"
+              if curl -sfL -A "$UA" --retry 3 --retry-delay 2 \
+                   "https://commons.wikimedia.org/wiki/Special:FilePath/${n}?width=320" \
+                   -o "cartas/${id}.jpg" && file "cartas/${id}.jpg" | grep -qiE "jpeg|png"; then
+                echo "OK  ${id}  ${nombre}"
+                sleep 1
+                return 0
+              fi
+            done
+            rm -f "cartas/${id}.jpg"
+            echo "FALLÓ  ${id}"
+            fallas+=("$id")
+          }
+
+          mayores=("Fool" "Magician" "High Priestess" "Empress" "Emperor" "Hierophant" "Lovers" \
+                   "Chariot" "Strength" "Hermit" "Wheel of Fortune" "Justice" "Hanged Man" "Death" \
+                   "Temperance" "Devil" "Tower" "Star" "Moon" "Sun" "Judgement" "World")
+          for i in $(seq 0 21); do
+            nn=$(printf "%02d" "$i")
+            bajar "M${i}" "RWS Tarot ${nn} ${mayores[$i]}.jpg" "RWS Tarot ${nn} ${mayores[$i]}.png"
+          done
+          # Los Enamorados tiene otro nombre en Commons
+          if [ ! -f cartas/M6.jpg ]; then fallas=("${fallas[@]/M6}"); bajar "M6" "TheLovers.jpg"; fi
+
+          rangos=("Ace" "Two" "Three" "Four" "Five" "Six" "Seven" "Eight" "Nine" "Ten" "Page" "Knight" "Queen" "King")
+          palos=("B:Wands:Wands" "C:Cups:Cups" "E:Swords:Swords" "O:Pents:Pentacles")
+          for p in "${palos[@]}"; do
+            IFS=: read -r letra archivo ingles <<< "$p"
+            for i in $(seq 1 14); do
+              nn=$(printf "%02d" "$i")
+              bajar "${letra}${i}" "${archivo}${nn}.jpg" "Tarot ${rangos[$((i-1))]} of ${ingles}.jpg"
+            done
+          done
+
+          cat > cartas/FUENTE.txt <<'TXT'
+          Ilustraciones de Pamela Colman Smith para el tarot Rider-Waite-Smith (1909),
+          de dominio público. Descargadas de Wikimedia Commons.
+          TXT
+
+          total=$(ls cartas/*.jpg 2>/dev/null | wc -l)
+          echo ""
+          echo "Cartas descargadas: ${total} de 78"
+          restantes=$(printf "%s " "${fallas[@]}" | xargs)
+          if [ -n "$restantes" ]; then echo "No se pudieron descargar: ${restantes}"; fi
+
+      - name: Guardar en el repositorio
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898099+github-actions[bot]@users.noreply.github.com"
+          git add cartas
+          git commit -m "Ilustraciones del Rider-Waite-Smith (1909)" || echo "No hay cambios"
+          git push
