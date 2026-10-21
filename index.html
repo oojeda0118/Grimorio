@@ -300,6 +300,8 @@ header.top h1{white-space:nowrap}
 header.top .today{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 header.top h1{display:flex;align-items:center;gap:10px}
 .brand{width:32px;height:32px;border-radius:8px;flex:none}
+.deckb{display:inline-block;font-size:.72rem;border-radius:999px;padding:1px 8px;margin-right:6px;border:1px solid currentColor}
+.deckb.fisico{color:var(--gold)}.deckb.virtual{color:var(--water)}
 </style>
 </head>
 <body>
@@ -820,7 +822,7 @@ function renderLecturas(){
   st.lecTab==="lista"?renderListView():renderCalendar();
 }
 function renderListView(){
-  const filters=[["todas","Todas"],["pend","Sin resultado"],["vencidas","Revisión pendiente"],["revisadas","Revisadas"]];
+  const filters=[["todas","Todas"],["fisico","Con mazo físico"],["virtual","Con mazo virtual"],["pend","Sin resultado"],["vencidas","Revisión pendiente"],["revisadas","Revisadas"]];
   $("#lbody").innerHTML=`<input type="search" placeholder="Buscar en preguntas, notas o cartas" data-bind="search" value="${esc(st.search)}">
   <div class="row" style="margin:10px 0"><select data-bind="lecFilter" style="flex:1;width:auto">${filters.map(([k,n])=>`<option value="${k}" ${k===st.filter?"selected":""}>${n}</option>`).join("")}</select><button class="btn" data-act="spreadsOpen">Mis tiradas</button></div>
   <div class="chips scroll" style="margin-bottom:12px"><button class="chip" data-act="tagFilter" data-t="" aria-pressed="${!st.tagFilter}">Todos los temas</button>${DB.tags.map(t=>`<button class="chip" data-act="tagFilter" data-t="${esc(t)}" aria-pressed="${st.tagFilter===t}">${esc(t)}</button>`).join("")}</div>
@@ -836,7 +838,7 @@ function readingBadge(r){
 const readingItem=r=>`<button class="ritem" data-act="openReading" data-id="${r.id}">
     <div class="rtop"><span>${r.moon?.emoji||""} ${fmtDate(r.date)}</span>${readingBadge(r)}</div>
     <div class="rq">${esc(r.question||readingSpreadName(r))}</div>
-    ${(r.tags||[]).length?`<div class="tagline">${r.tags.map(esc).join(", ")}</div>`:""}
+    ${(r.tags||[]).length||r.deck?`<div class="tagline">${r.deck?`<span class="deckb ${r.deck}">${r.deck==="fisico"?"Físico":"Virtual"}</span>`:""}${(r.tags||[]).map(esc).join(", ")}</div>`:""}
     <div class="rcards">${r.cards.filter(c=>c.id).map(c=>face(c.id,c.rev,"s")).join("")}</div></button>`;
 function renderReadingList(){
   const q=st.search.trim().toLowerCase(),today=dkey();
@@ -844,6 +846,7 @@ function renderReadingList(){
   if(st.filter==="pend")list=list.filter(r=>!r.outcome);
   if(st.filter==="vencidas")list=list.filter(r=>!r.outcome&&r.reviewDate&&r.reviewDate<=today);
   if(st.filter==="revisadas")list=list.filter(r=>r.outcome);
+  if(st.filter==="fisico"||st.filter==="virtual")list=list.filter(r=>r.deck===st.filter);
   if(st.tagFilter)list=list.filter(r=>(r.tags||[]).includes(st.tagFilter));
   if(q)list=list.filter(r=>[r.question,r.interp,r.followup,readingSpreadName(r),...(r.tags||[]),...r.cards.map(c=>CARD[c.id]?.name)].join(" ").toLowerCase().includes(q));
   const el=$("#rlist");if(!el)return;
@@ -908,8 +911,8 @@ function positionsFor(key,n,cards){const s=spreadOf(key,cards);return s.free?Arr
 function openEditor(id,spread,opts={}){
   if(id)draft=JSON.parse(JSON.stringify(DB.readings.find(r=>r.id===id)));
   else{const sp=spread&&spreadOf(spread)&&!spreadOf(spread).gone?spread:"tres";
-    draft={id:null,date:opts.date||dkey(),question:"",spread:sp,cards:positionsFor(sp,1).map(p=>({pos:p,id:"",rev:false})),interp:"",tags:[],reviewIn:DB.settings.defaultReview,outcome:"",followup:"",followDate:""}}
-  if(!draft.tags)draft.tags=[];if(draft.reviewIn==null)draft.reviewIn="";
+    draft={id:null,deck:"fisico",date:opts.date||dkey(),question:"",spread:sp,cards:positionsFor(sp,1).map(p=>({pos:p,id:"",rev:false})),interp:"",tags:[],reviewIn:DB.settings.defaultReview,outcome:"",followup:"",followDate:""}}
+  st.deckTouched=!!draft.id&&!!draft.deck;if(!draft.tags)draft.tags=[];if(draft.reviewIn==null)draft.reviewIn="";
   st.assistOpen=false;
   let once=!!opts.review;
   openSheet(editorHtml,()=>{renderDraftCards();if(once){once=false;const s=$("#reviewSec");s&&s.scrollIntoView({block:"start"})}});
@@ -932,6 +935,7 @@ function editorHtml(){
     <div class="field"><span class="label">Temas</span><div class="chips" id="tagChips">${tagChips()}</div></div>
     <label class="field"><span class="label">Tirada</span><select data-bind="d.spread">${spreadOptions()}</select></label>
     ${sp.desc?`<p class="small muted">${esc(sp.desc)}</p>`:""}
+    <div class="field"><span class="label">Mazo</span><div class="seg" role="group" id="deckSeg">${deckSeg()}</div></div>
     <div class="row" style="margin:6px 0 4px"><button class="btn" data-act="drawAll">Barajar y sacar</button><span class="muted small">o elige cada carta de tu mazo físico</span></div>
     <div id="dcards"></div>
     <div id="assistWrap"></div>
@@ -958,6 +962,9 @@ function renderDraftCards(anim){
    +(free?`<button class="btn block" data-act="addPos">Añadir carta</button>`:"");
   renderAssist();
 }
+const DECKS={fisico:"Mi mazo físico",virtual:"Mazo virtual"};
+const deckSeg=()=>Object.entries(DECKS).map(([k,n])=>`<button data-act="setDeck" data-d="${k}" aria-pressed="${draft.deck===k}">${n}</button>`).join("");
+function autoVirtual(){if(!st.deckTouched&&draft.deck!=="virtual"){draft.deck="virtual";const g=$("#deckSeg");if(g)g.innerHTML=deckSeg()}}
 function usedIds(except){return new Set(draft.cards.filter((c,i)=>i!==except&&c.id).map(c=>c.id))}
 
 /* ---- Asistente de interpretación ---- */
@@ -1942,7 +1949,7 @@ function searchResults(){
   const q=st.gq.trim().toLowerCase();if(q.length<2)return `<p class="muted small">Escribe al menos dos letras. Busca en lecturas, cartas, notas, rituales, tradiciones, intenciones, correspondencias, combinaciones, cartas natales y el glosario.</p>`;
   const has=(...xs)=>xs.join(" ").toLowerCase().includes(q),groups=[];
   const add=(title,items,fn)=>{if(items.length)groups.push(`<h3 class="grouph">${title} <span class="muted small">(${items.length})</span></h3>${items.slice(0,6).map(fn).join("")}${items.length>6?`<p class="small muted">y ${items.length-6} más…</p>`:""}`)};
-  add("Lecturas",DB.readings.filter(r=>has(r.question,r.interp,r.followup,readingSpreadName(r),(r.tags||[]).join(" "),r.cards.map(c=>CARD[c.id]?.name).join(" "))).sort((a,b)=>b.date.localeCompare(a.date)),r=>`<button class="ritem compact" data-act="openReading" data-id="${r.id}"><div class="rtop"><span>${fmtDate(r.date)}</span></div><div class="rq">${esc(r.question||readingSpreadName(r))}</div></button>`);
+  add("Lecturas",DB.readings.filter(r=>has(r.deck?DECKS[r.deck]:"",r.question,r.interp,r.followup,readingSpreadName(r),(r.tags||[]).join(" "),r.cards.map(c=>CARD[c.id]?.name).join(" "))).sort((a,b)=>b.date.localeCompare(a.date)),r=>`<button class="ritem compact" data-act="openReading" data-id="${r.id}"><div class="rtop"><span>${fmtDate(r.date)}</span></div><div class="rq">${esc(r.question||readingSpreadName(r))}</div></button>`);
   add("Cartas",CARDS.filter(c=>has(c.name,c.up,c.rev,c.sym,c.col,c.astro,DB.notes[c.id])),c=>`<button class="ritem compact" data-act="cardInfo" data-id="${c.id}"><div class="row" style="flex-wrap:nowrap">${face(c.id,false,"s")}<div><div class="rq" style="margin:0">${esc(c.name)}</div><div class="small muted">${esc(trunc(c.up,70))}</div></div></div></button>`);
   add("Cartas del día",Object.entries(DB.daily).filter(([k,d])=>has(d.note,CARD[d.id].name)).sort((a,b)=>b[0].localeCompare(a[0])),([k,d])=>`<button class="ritem compact" data-act="goDay" data-k="${k}"><div class="rtop"><span>${fmtDate(k)}</span></div><div class="rq">${esc(CARD[d.id].name)}</div>${d.note?`<div class="small muted">${esc(trunc(d.note,90))}</div>`:""}</button>`);
   add("Rituales",DB.rituals.filter(r=>has(r.title,r.type,r.purpose,r.ingredients,r.steps,r.notes,(r.logs||[]).map(l=>l.notes+" "+l.followup).join(" "))),r=>`<button class="ritem compact" data-act="ritualOpen" data-id="${r.id}"><div class="rtop"><span>${esc(r.type)}</span></div><div class="rq">${esc(r.title)}</div></button>`);
@@ -2740,7 +2747,9 @@ function statsTags(reads){
   const tags=DB.tags.map(t=>{const rs=reads.filter(r=>(r.tags||[]).includes(t)),rev=rs.filter(r=>r.outcome),hit=rs.filter(r=>r.outcome==="si").length+rs.filter(r=>r.outcome==="parcial").length*.5;return [t,rs.length,rev.length?Math.round(hit/rev.length*100):null]}).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
   const sp={};reads.forEach(r=>{const n=readingSpreadName(r);sp[n]=(sp[n]||0)+1});
   const spr=Object.entries(sp).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  return `${tags.length?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Por tema</h3>${bars(tags.map(t=>[t[0],t[1]]),tags[0][1])}${tags.filter(t=>t[2]!==null).length?`<p class="small muted" style="margin-top:8px">Acierto en lecturas revisadas: ${tags.filter(t=>t[2]!==null).map(t=>`${esc(t[0])} ${t[2]}%`).join(", ")}.</p>`:""}</section>`:""}
+  const dk=["fisico","virtual"].map(d=>{const rs=reads.filter(r=>r.deck===d),rv=rs.filter(r=>r.outcome),hit=rs.filter(r=>r.outcome==="si").length+rs.filter(r=>r.outcome==="parcial").length*.5;return [DECKS[d],rs.length,rv.length?Math.round(hit/rv.length*100):null]});
+  const deckHtml=dk[0][1]||dk[1][1]?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Por mazo</h3>${bars(dk.map(x=>[x[0],x[1]]),Math.max(dk[0][1],dk[1][1]))}${dk.some(x=>x[2]!==null)?`<p class="small muted" style="margin-top:8px">Acierto en lecturas revisadas: ${dk.filter(x=>x[2]!==null).map(x=>`${x[0].toLowerCase()} ${x[2]}%`).join(", ")}.</p>`:""}${reads.length>dk[0][1]+dk[1][1]?`<p class="small muted">${reads.length-dk[0][1]-dk[1][1]} lecturas antiguas no tienen el mazo indicado.</p>`:""}</section>`:"";
+  return `${deckHtml}${tags.length?`<section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Por tema</h3>${bars(tags.map(t=>[t[0],t[1]]),tags[0][1])}${tags.filter(t=>t[2]!==null).length?`<p class="small muted" style="margin-top:8px">Acierto en lecturas revisadas: ${tags.filter(t=>t[2]!==null).map(t=>`${esc(t[0])} ${t[2]}%`).join(", ")}.</p>`:""}</section>`:""}
   <section class="panel"><h3 style="font-size:1.15rem;margin-bottom:6px">Tiradas más usadas</h3>${bars(spr,spr[0][1])}</section>`;
 }
 
@@ -2913,8 +2922,9 @@ const ACT={
   sheetBack:()=>popSheet(),
   cardInfo:el=>{st.cardTab="significado";const id=el.dataset.id;goSheet(()=>cardSheet(id))},
   cardTab:el=>{st.cardTab=el.dataset.t;refreshSheet()},
-  drawAll:()=>{const deck=shuffled(CARDS.map(c=>c.id));draft.cards.forEach((c,i)=>{c.id=deck[i];c.rev=randRev()});renderDraftCards(true)},
-  drawOne:el=>{const i=+el.dataset.i,used=usedIds(i),pool=CARDS.filter(c=>!used.has(c.id));draft.cards[i].id=pool[rnd(pool.length)].id;draft.cards[i].rev=randRev();renderDraftCards(true)},
+  setDeck:el=>{draft.deck=el.dataset.d;st.deckTouched=true;$("#deckSeg").innerHTML=deckSeg()},
+  drawAll:()=>{autoVirtual();const deck=shuffled(CARDS.map(c=>c.id));draft.cards.forEach((c,i)=>{c.id=deck[i];c.rev=randRev()});renderDraftCards(true)},
+  drawOne:el=>{autoVirtual();const i=+el.dataset.i,used=usedIds(i),pool=CARDS.filter(c=>!used.has(c.id));draft.cards[i].id=pool[rnd(pool.length)].id;draft.cards[i].rev=randRev();renderDraftCards(true)},
   addPos:()=>{draft.cards.push({pos:"Carta "+(draft.cards.length+1),id:"",rev:false});renderDraftCards()},
   removePos:el=>{draft.cards.splice(+el.dataset.i,1);draft.cards.forEach((c,i)=>c.pos="Carta "+(i+1));if(!draft.cards.length)ACT.addPos();else renderDraftCards()},
   toggleAssist:()=>{st.assistOpen=!st.assistOpen;renderAssist()},
