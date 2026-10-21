@@ -306,6 +306,7 @@ header.top h1{display:flex;align-items:center;gap:10px}
 .tc.art .tci{padding:0;border-radius:inherit;overflow:hidden}
 .tc.art .tci img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .tc.art .tci>span{visibility:hidden}
+.tc.s.art{border-width:1px;border-radius:5px}
 </style>
 </head>
 <body>
@@ -736,7 +737,7 @@ async function cacheArt(force){
 function face(id,rev,size="m",extra=""){
   const c=CARD[id];
   if(!c) return `<div class="tc ${size} empty ${extra}" aria-label="Sin carta"></div>`;
-  const art=ART.ok&&DB.settings.art!=="icons"&&size!=="s";
+  const art=ART.ok&&DB.settings.art!=="icons"&&(size!=="s"||DB.settings.artSmall!==false);
   return `<div class="tc ${size} ${c.cls}${rev?" rev":""}${art?" art":""} ${extra}" role="img" aria-label="${esc(c.name)}${rev?" invertida":""}"><div class="tci">${art?`<img src="cartas/${id}.jpg" alt="" loading="lazy" decoding="async" onerror="this.closest('.tc').classList.remove('art');this.remove()">`:""}<span class="tn">${c.short}</span><span class="tg">${GLYPH[c.suit]}</span><span class="tl">${esc(c.name)}</span></div></div>`;
 }
 const backFace=(size="l")=>`<div class="tc ${size} back" aria-hidden="true"><div class="tci"><span class="tg">${GLYPH.M}</span></div></div>`;
@@ -2588,7 +2589,8 @@ function artSettingsHtml(){
    <div class="seg" role="group">${[["images","Ilustraciones"],["icons","Íconos"]].map(([k,n])=>`<button data-act="artMode" data-m="${k}" aria-pressed="${(s.art||"images")===k}">${n}</button>`).join("")}</div>
    <p class="small" style="margin-bottom:4px">${status}</p>
    ${ART.ok&&cached!=="78"?`<button class="btn sm" data-act="artCache">Guardar todas para usar sin internet</button>`:""}
-   <p class="small muted">Ilustraciones originales de Pamela Colman Smith (1909), de dominio público, vía Wikimedia Commons. En las miniaturas se siguen usando los íconos para que se distingan mejor.</p></section>`;
+   ${(s.art||"images")==="images"?`<label class="check"><input type="checkbox" data-bind="artSmall" ${s.artSmall!==false?"checked":""}> Usar ilustraciones también en las miniaturas</label><p class="small muted" style="margin-top:0">Las miniaturas aparecen en la lista de lecturas, el historial de cartas del día y las búsquedas.</p>`:""}
+   <p class="small muted">Ilustraciones originales de Pamela Colman Smith (1909), de dominio público, vía Wikimedia Commons.</p></section>`;
 }
 function comfortSettingsHtml(){
   const s=DB.settings,L=myLoc(),opts=VE_CITIES.map(c=>[c[0]+", Venezuela",c[1],c[2]]).concat(WORLD_CITIES.map(c=>[c[0],c[1],c[2]]));
@@ -3013,6 +3015,7 @@ const BIND={
   gloSearch:el=>{st.gloSearch=el.value;renderGloList()},
   planDate:el=>st.planDate=el.value,planNote:el=>st.planNote=el.value,pickNote:el=>st.pickNote=el.value,
   gloKind:el=>{st.gloKind=el.value;st.gq2=null;renderGloStudy()},
+  artSmall:el=>{DB.settings.artSmall=el.checked;save()},
   wideLines:el=>{DB.settings.wideLines=el.checked;save();applyComfort()},
   loc:el=>{const opts=VE_CITIES.map(c=>[c[0]+", Venezuela",c[1],c[2]]).concat(WORLD_CITIES.map(c=>[c[0],c[1],c[2]])),o=opts[+el.value];DB.settings.loc={name:o[0].replace(", Venezuela",""),lat:o[1],lon:o[2]};save();toast("Ubicación: "+o[0])},
   homeOn:el=>{DB.settings.homeOff[el.dataset.k]=!el.checked;save()},
