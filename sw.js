@@ -1,5 +1,5 @@
 // Grimorio: guarda la app en el teléfono para que abra sin internet.
-// La app busca primero la versión nueva; si no hay conexión, usa la guardada.
+// La app busca siempre la versión nueva; si no hay conexión, usa la guardada.
 // Las ilustraciones de las cartas se toman del teléfono si ya están guardadas.
 const CACHE = "grimorio-v1";
 const FILES = ["./", "./index.html"];
@@ -37,9 +37,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // La app: primero de internet (para recibir actualizaciones), si no hay conexión, del teléfono.
+  // La app: primero de internet, siempre preguntando al servidor si hay una versión nueva
+  // (sin usar la copia temporal del navegador); si no hay conexión, del teléfono.
   event.respondWith(
-    fetch(req)
+    fetch(req.url, { cache: "no-cache", credentials: "same-origin" })
       .then((res) => saveCopy(req, res))
       .catch(() =>
         caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match("./index.html"))

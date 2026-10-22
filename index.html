@@ -708,6 +708,8 @@ CARDS.forEach(c=>{
   }
 });
 
+/* ============ Versión ============ */
+const APP_VERSION="2026-10-22";
 /* ============ Almacenamiento ============ */
 const KEY="grimorio.v1";
 const DEFAULT_COMBO_CATS=["Amor","Trabajo","Advertencias","Crecimiento","Espiritual"];
@@ -3156,6 +3158,7 @@ function renderAjustes(){
    <p class="muted small" style="margin-top:10px">${DB.readings.length} lecturas, ${Object.keys(DB.daily).length} cartas del día, ${Object.keys(DB.notes).filter(k=>DB.notes[k]).length} notas de cartas, ${Object.keys(DB.combos).length} combinaciones, ${Object.keys(DB.customSpreads).length} tiradas propias, ${DB.rituals.length} rituales, ${DB.intentions.length} intenciones, ${DB.charts.length} cartas natales.</p></section>
   <section class="panel"><h3 style="font-size:1.15rem">Sobre los cálculos y textos</h3>
    <p class="muted small">Las fases y el signo lunar se calculan dentro de la app, sin internet, con zodíaco tropical. Las horas de luna nueva y llena tienen un margen de unos minutos. Las correspondencias siguen el sistema de la Golden Dawn; los textos de las cartas son una guía de estudio y vale la pena contrastarlos con tus libros.</p></section>
+  <section class="panel"><h3 style="font-size:1.15rem">Versión de la app</h3><p class="small">Tienes la versión <b>${APP_VERSION}</b>.</p><p class="small muted">Si subiste una versión nueva a GitHub y aquí no cambia, toca el botón con internet.</p><button class="btn sm" data-act="checkUpdate">Buscar actualización</button></section>
   <button class="btn danger block" data-act="wipe">Borrar todos los datos</button>`;
 }
 async function exportData(){
@@ -3308,6 +3311,14 @@ const ACT={
   obsSym:el=>{const id=el.dataset.id,k=el.dataset.s,o=obsOf(id),a=o.sym.slice(),i=a.indexOf(k);i<0?a.push(k):a.splice(i,1);setObs(id,"sym",a);el.setAttribute("aria-pressed",i<0)},
   obsReset:el=>{if(DB.cardObs)delete DB.cardObs[el.dataset.id];save();refreshSheet()},
   guideToggle:el=>{const g=el.dataset.g;st.guideOpen=st.guideOpen===g?null:g;renderGuide();if(st.guideOpen){const h=$(`[data-g="${g}"]`);h&&h.scrollIntoView({block:"start",behavior:"smooth"})}},
+  checkUpdate:async()=>{
+    if(!navigator.onLine){alert("Necesitas conexión a internet para buscar actualizaciones.");return}
+    toast("Buscando actualización…");
+    try{const r=await fetch("index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/APP_VERSION="([^"]+)"/);
+      if("serviceWorker" in navigator){const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.update()}
+      if("caches" in window){const c=await caches.open("grimorio-v1");await c.put("./index.html",new Response(t,{headers:{"Content-Type":"text/html"}}));await c.put("./",new Response(t,{headers:{"Content-Type":"text/html"}}))}
+      if(m&&m[1]!==APP_VERSION){toast("Nueva versión "+m[1]+". Recargando…");setTimeout(()=>location.reload(),900)}else toast("Ya tienes la última versión publicada")}
+    catch(e){alert("No se pudo comprobar la actualización. Revisa tu conexión.")}},
   setFor:el=>{draft.forWho=el.dataset.f;$("#forWho").innerHTML=forWhoHtml();renderAstroLink()},
   toggleAstroLink:()=>{st.astroLinkOpen=!st.astroLinkOpen;renderAstroLink()},
   setDeck:el=>{draft.deck=el.dataset.d;st.deckTouched=true;$("#deckSeg").innerHTML=deckSeg()},
