@@ -315,6 +315,15 @@ header.top h1{display:flex;align-items:center;gap:10px}
 .gcard{display:flex;flex-direction:column;align-items:center;gap:5px;width:96px;flex:none;font-size:.78rem;line-height:1.25;text-align:center;color:var(--text)}
 .guidetip{background:var(--bg);border-radius:10px;padding:8px 10px}
 .hcard .hhead{scroll-margin-top:70px}
+.cslots{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.cslot{display:flex;flex-direction:column;align-items:center;gap:8px}
+.cslot select{font-size:15px}
+h3.coltog{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none}
+h3.coltog .chev{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:2;flex:none;transition:transform .2s}
+.panel.collapsed>h3.coltog .chev{transform:rotate(-90deg)}
+.panel.collapsed>:not(h3.coltog){display:none!important}
+.panel.collapsed>h3.coltog{margin:0!important}
+.panel.collapsed{padding-top:14px;padding-bottom:14px}
 </style>
 </head>
 <body>
@@ -701,8 +710,9 @@ CARDS.forEach(c=>{
 
 /* ============ Almacenamiento ============ */
 const KEY="grimorio.v1";
+const DEFAULT_COMBO_CATS=["Amor","Trabajo","Advertencias","Crecimiento","Espiritual"];
 /*v4*/const DEFAULT_TAGS=["Amor","Trabajo","Dinero","Salud","Familia","Espiritual","Personal"];
-const defaults=()=>({v:3,readings:[],daily:{},study:{},notes:{},combos:{},repeatNotes:[],customSpreads:{},tags:DEFAULT_TAGS.slice(),rituals:[],intentions:[],corrUser:[],corrNotes:{},charts:[],gloStudy:{},cardObs:{},settings:{theme:"auto",reversals:true,defaultReview:"1m",badge:false},lastBackup:null});
+const defaults=()=>({v:3,readings:[],daily:{},study:{},notes:{},combos:{},repeatNotes:[],customSpreads:{},tags:DEFAULT_TAGS.slice(),rituals:[],intentions:[],corrUser:[],corrNotes:{},charts:[],gloStudy:{},cardObs:{},comboCats:DEFAULT_COMBO_CATS.slice(),settings:{theme:"auto",reversals:true,defaultReview:"1m",badge:false},lastBackup:null});
 function normalize(d){const b=defaults();const o=Object.assign(b,d||{},{settings:Object.assign(b.settings,(d&&d.settings)||{})});if(!Array.isArray(o.tags))o.tags=DEFAULT_TAGS.slice();o.v=5;return o}
 function load(){try{const raw=localStorage.getItem(KEY);if(!raw)return defaults();return normalize(JSON.parse(raw))}catch(e){return defaults()}}
 let DB=load();
@@ -805,7 +815,7 @@ function applyTheme(){
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",applyTheme);
 
 /* ============ Navegación y hojas ============ */
-const st={view:"hoy",guideOpen:"mirada",astroLinkOpen:false,spSel:0,rcY:null,rcM:null,rcDay:null,pickMode:"plan",pickDate:"",pickNote:"",planDate:"",planNote:"",gloMode:"leer",gloKind:"simbolos",gq2:null,gsess:{ok:0,total:0},hoursAll:false,ritMode:"mine",tradSearch:"",gloSearch:"",gloCat:"",gq:"",bondId:null,curioShift:0,astroTab:"carta",chartId:null,chDraft:null,grimTab:"rituales",ritSearch:"",corrSearch:"",corrCat:"",corrUse:"",rDraft:null,logDraft:null,iDraft:null,cDraft:null,search:"",filter:"todas",tagFilter:"",lecTab:"lista",calY:null,calM:null,calDay:null,spDraft:null,cardsTab:"estudiar",studyMode:"significado",studyGroup:"todas",studyCur:null,studyShown:false,q:null,sess:{ok:0,total:0},
+const st={view:"hoy",comboCat:"*",guideOpen:"mirada",astroLinkOpen:false,spSel:0,rcY:null,rcM:null,rcDay:null,pickMode:"plan",pickDate:"",pickNote:"",planDate:"",planNote:"",gloMode:"leer",gloKind:"simbolos",gq2:null,gsess:{ok:0,total:0},hoursAll:false,ritMode:"mine",tradSearch:"",gloSearch:"",gloCat:"",gq:"",bondId:null,curioShift:0,astroTab:"carta",chartId:null,chDraft:null,grimTab:"rituales",ritSearch:"",corrSearch:"",corrCat:"",corrUse:"",rDraft:null,logDraft:null,iDraft:null,cDraft:null,search:"",filter:"todas",tagFilter:"",lecTab:"calendario",calY:null,calM:null,calDay:null,spDraft:null,cardsTab:"estudiar",studyMode:"significado",studyGroup:"todas",studyCur:null,studyShown:false,q:null,sess:{ok:0,total:0},
   fis:{id:"",rev:false,text:"",shown:false},catGroup:"todas",catSearch:"",comboSearch:"",statsRange:"all",cardTab:"significado",assistOpen:false,comboDraft:null,repeatDraft:""};
 const TITLES={hoy:"Grimorio",lecturas:"Diario",cartas:"Cartas",grimorio:"Mi grimorio",stats:"Estadísticas",ajustes:"Ajustes",astro:"Astrología",glosario:"Glosario"};
 const NAV_OF={stats:"menu",ajustes:"menu",astro:"menu",glosario:"menu"};
@@ -846,7 +856,7 @@ function repeatSheet(id){
 
 /* ============ LECTURAS ============ */
 function renderLecturas(){
-  $("#main").innerHTML=`<div class="seg" role="group" style="margin-bottom:14px"><button data-act="lecTab" data-t="lista" aria-pressed="${st.lecTab==="lista"}">Lista</button><button data-act="lecTab" data-t="calendario" aria-pressed="${st.lecTab==="calendario"}">Calendario</button></div><div id="lbody"></div>`;
+  $("#main").innerHTML=`<div class="seg" role="group" style="margin-bottom:14px"><button data-act="lecTab" data-t="calendario" aria-pressed="${st.lecTab==="calendario"}">Calendario</button><button data-act="lecTab" data-t="lista" aria-pressed="${st.lecTab==="lista"}">Lista</button></div><div id="lbody"></div>`;
   st.lecTab==="lista"?renderListView():renderCalendar();
 }
 function renderListView(){
@@ -919,7 +929,7 @@ function renderCalendar(){
 function renderDayDetail(){
   const k=st.calDay,dd=dayData(k),[y,m]=k.split("-").map(Number),e=monthEvents(y,m-1)[k];
   const mi=moonInfo(k===dkey()?new Date():fromKey(k));
-  let h=`<section class="panel"><h3 style="font-size:1.25rem">${cap(fromKey(k).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))}</h3>
+  let h=`<section class="panel nocol"><h3 style="font-size:1.25rem">${cap(fromKey(k).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))}</h3>
   <div class="row" style="flex-wrap:nowrap;margin-top:8px">${moonSVG(mi.elong,44)}<div><b>${e?e.name+" a las "+e.time.toLocaleTimeString("es",{hour:"numeric",minute:"2-digit",hour12:true}):mi.phase.name}</b><p class="small muted" style="margin:0">${Math.round(mi.illum*100)}% iluminada, luna en ${signTxt(mi.sign)}</p></div></div></section>`;
   const evs=(monthSky(y,m-1)[k]||[]).slice().sort((a,b)=>(a.time||0)-(b.time||0)),rxs=retrogradesOn(fromKey(k)),vocs=vocOnDay(k);
   if(evs.length||rxs.length||vocs.length)h+=`<section class="panel"><span class="label">Cielo del día</span>${vocs.map(v=>`<p class="small voc">Luna vacía de curso: ${dkey(v.start)===k?fmtTime(v.start):"desde el "+fmtShort(dkey(v.start))+" "+fmtTime(v.start)} a ${dkey(v.end)===k?fmtTime(v.end):fmtShort(dkey(v.end))+" "+fmtTime(v.end)}</p>`).join("")}${evs.map(x=>`<p class="small">${PL[x.p].g} ${x.text}${x.time?" a las "+x.time.toLocaleTimeString("es",{hour:"numeric",minute:"2-digit",hour12:true}):"."}</p>`).join("")}${rxs.length?`<p class="small muted">Retrógrados: ${rxs.map(p=>PL[p].name).join(", ")}.</p>`:""}</section>`;
@@ -941,11 +951,11 @@ function positionsFor(key,n,cards){const s=spreadOf(key,cards);return s.free?Arr
 function openEditor(id,spread,opts={}){
   if(id)draft=JSON.parse(JSON.stringify(DB.readings.find(r=>r.id===id)));
   else{const sp=spread&&spreadOf(spread)&&!spreadOf(spread).gone?spread:"tres";
-    draft={id:null,deck:"fisico",forWho:"yo",person:"",personChart:"",date:opts.date||dkey(),question:"",spread:sp,cards:positionsFor(sp,1).map(p=>({pos:p,id:"",rev:false})),interp:"",tags:[],reviewIn:DB.settings.defaultReview,outcome:"",followup:"",followDate:""}}
+    draft={id:null,allowRev:DB.settings.reversals,deck:"fisico",forWho:"yo",person:"",personChart:"",date:opts.date||dkey(),question:"",spread:sp,cards:positionsFor(sp,1).map(p=>({pos:p,id:"",rev:false})),interp:"",tags:[],reviewIn:DB.settings.defaultReview,outcome:"",followup:"",followDate:""}}
   st.deckTouched=!!draft.id&&!!draft.deck;if(!draft.tags)draft.tags=[];if(draft.reviewIn==null)draft.reviewIn="";
   st.assistOpen=false;
   let once=!!opts.review;
-  openSheet(editorHtml,()=>{renderDraftCards();if(once){once=false;const s=$("#reviewSec");s&&s.scrollIntoView({block:"start"})}});
+  openSheet(editorHtml,()=>{renderDraftCards();if(once){once=false;const s=$("#reviewSec");if(s){s.classList.remove("collapsed");s.scrollIntoView({block:"start"})}}});
 }
 function spreadOptions(){
   const cur=spreadOf(draft.spread,draft.cards);
@@ -968,6 +978,7 @@ function editorHtml(){
     <div class="field"><span class="label">Para quién</span><div id="forWho">${forWhoHtml()}</div></div>
     <div class="field"><span class="label">Mazo</span><div class="seg" role="group" id="deckSeg">${deckSeg()}</div></div>
     <div class="row" style="margin:6px 0 4px"><button class="btn" data-act="drawAll">Barajar y sacar</button><span class="muted small">o elige cada carta de tu mazo físico</span></div>
+    <label class="check" style="min-height:36px"><input type="checkbox" data-bind="d.allowRev" ${(draft.allowRev??DB.settings.reversals)?"checked":""}> Al sacar al azar, incluir cartas invertidas</label>
     <div id="dcards"></div>
     <div id="assistWrap"></div>
     <div id="astroLinkWrap"></div>
@@ -997,6 +1008,7 @@ function renderDraftCards(anim){
 const DECKS={fisico:"Mi mazo físico",virtual:"Mazo virtual"};
 const deckSeg=()=>Object.entries(DECKS).map(([k,n])=>`<button data-act="setDeck" data-d="${k}" aria-pressed="${draft.deck===k}">${n}</button>`).join("");
 function autoVirtual(){if(!st.deckTouched&&draft.deck!=="virtual"){draft.deck="virtual";const g=$("#deckSeg");if(g)g.innerHTML=deckSeg()}}
+const draftRev=()=>(draft.allowRev??DB.settings.reversals)&&rnd(2)===1;
 function usedIds(except){return new Set(draft.cards.filter((c,i)=>i!==except&&c.id).map(c=>c.id))}
 
 /* ---- Asistente de interpretación ---- */
@@ -1122,12 +1134,12 @@ function analyze(r){
   if(n>=2){
     h+=`<h4>Cartas vecinas</h4><p class="small muted">Según sus elementos, en el orden de la tirada.</p>`;
     for(let i=0;i<n-1;i++){
-      const a=cs[i],b=cs[i+1],rel=relation(a.card.elem,b.card.elem),cb=DB.combos[comboKey(a.id,b.id)];
+      const a=cs[i],b=cs[i+1],rel=relation(a.card.elem,b.card.elem),fc=findCombo(a.id,!!a.rev,b.id,!!b.rev),cb=fc&&fc.exact?fc.cb:null;
       h+=`<div class="pair"><div class="row" style="gap:6px">${face(a.id,a.rev,"s")}${face(b.id,b.rev,"s")}<div style="flex:1;min-width:150px"><b>${esc(a.card.name)} y ${esc(b.card.name)}</b><p class="small">${rel?`${rel[1]}: ${rel[2]}.`:"Una de ellas está regida por un planeta: lee su relación por el significado."}</p></div></div>
-      ${cb&&cb.note?`<p class="small">Tu combinación: ${esc(cb.note)}</p>`:""}<button class="btn ghost sm" data-act="comboOpen" data-a="${a.id}" data-b="${b.id}">${cb?"Editar combinación":"Anotar combinación"}</button></div>`;
+      ${fc&&fc.cb.note?`<p class="small">${fc.exact?"Tu combinación":"Tu combinación (anotada con otra orientación)"}${fc.cb.cat?` · ${esc(fc.cb.cat)}`:""}: ${esc(fc.cb.note)}</p>`:""}<button class="btn ghost sm" data-act="comboOpen" data-a="${a.id}" data-b="${b.id}" data-ar="${a.rev?1:""}" data-br="${b.rev?1:""}">${cb?"Editar combinación":"Anotar combinación"}</button></div>`;
     }
     const others=[];
-    for(let i=0;i<n;i++)for(let j=i+2;j<n;j++){const cb=DB.combos[comboKey(cs[i].id,cs[j].id)];if(cb&&cb.note)others.push([cs[i],cs[j],cb])}
+    for(let i=0;i<n;i++)for(let j=i+2;j<n;j++){const fc=findCombo(cs[i].id,!!cs[i].rev,cs[j].id,!!cs[j].rev);if(fc&&fc.cb.note)others.push([cs[i],cs[j],fc.cb])}
     if(others.length)h+=`<h4>Otras combinaciones tuyas en esta tirada</h4>${others.map(([a,b,cb])=>`<p class="small"><b>${esc(a.card.name)} y ${esc(b.card.name)}:</b> ${esc(cb.note)}</p>`).join("")}`;
   }
   return h;
@@ -1215,28 +1227,6 @@ function renderCatalogGrid(){
   cards.forEach(c=>{if(c.suit!==cur){flush();cur=c.suit}buf.push(`<button class="cardbtn" data-act="cardInfo" data-id="${c.id}">${face(c.id,false,"m")}</button>`)});flush();
   $("#cgrid").innerHTML=out.join("")||`<div class="empty">Ninguna carta coincide.</div>`;
 }
-function renderCombos(){
-  $("#cbody").innerHTML=`<p class="muted small">Anota lo que aprendes cuando dos cartas salen juntas. También puedes hacerlo desde el asistente de una lectura.</p>
-  <div class="row" style="margin-bottom:12px"><input type="search" placeholder="Buscar combinación" data-bind="comboSearch" value="${esc(st.comboSearch)}" style="flex:1;min-width:180px"><button class="btn primary" data-act="comboOpen">Nueva combinación</button></div><div id="clist"></div>`;
-  renderComboList();
-}
-function renderComboList(){
-  const q=st.comboSearch.trim().toLowerCase();
-  let list=Object.entries(DB.combos).map(([k,v])=>Object.assign({k},v)).sort((a,b)=>(b.updated||"").localeCompare(a.updated||""));
-  if(q)list=list.filter(c=>(CARD[c.a].name+" "+CARD[c.b].name+" "+c.note).toLowerCase().includes(q));
-  $("#clist").innerHTML=list.length?list.map(c=>`<button class="ritem" data-act="comboOpen" data-a="${c.a}" data-b="${c.b}"><div class="row" style="gap:6px;flex-wrap:nowrap">${face(c.a,false,"s")}${face(c.b,false,"s")}<div style="min-width:0"><div class="rq" style="margin:0 0 2px">${esc(CARD[c.a].name)} y ${esc(CARD[c.b].name)}</div><div class="small muted">${esc(trunc(c.note||"",120))}</div></div></div></button>`).join(""):`<div class="empty">${Object.keys(DB.combos).length?"Ninguna combinación coincide.":"Todavía no has anotado combinaciones."}</div>`;
-}
-function comboSheet(){
-  const d=st.comboDraft,k=d.a&&d.b?comboKey(d.a,d.b):null,exists=k&&DB.combos[k];
-  return sheetHead("Combinación")+`<div class="sbody">
-   <div class="row" style="justify-content:center;gap:14px;margin-bottom:10px">${d.a?face(d.a,false,"m"):backFace("m")}${d.b?face(d.b,false,"m"):backFace("m")}</div>
-   <label class="field"><span class="label">Primera carta</span>${cardSelect("combo.a",d.a)}</label>
-   <label class="field"><span class="label">Segunda carta</span>${cardSelect("combo.b",d.b)}</label>
-   ${d.a&&d.b?`<div class="reveal small"><p><b>${esc(CARD[d.a].name)}:</b> ${esc(CARD[d.a].up)}</p><p><b>${esc(CARD[d.b].name)}:</b> ${esc(CARD[d.b].up)}</p>${(()=>{const r=relation(CARD[d.a].elem,CARD[d.b].elem);return r?`<p class="muted">Elementos: ${r[1].toLowerCase()}, ${r[2]}.</p>`:""})()}</div>`:""}
-   <label class="field"><span class="label">Qué significan juntas para ti</span><textarea rows="5" data-bind="combo.note" placeholder="Por ejemplo: cuando salen juntas suele hablar de…">${esc(d.note)}</textarea></label>
-   <button class="btn primary block" data-act="comboSave">Guardar combinación</button>
-   ${exists?`<button class="btn danger block" style="margin-top:10px" data-act="comboDelete">Borrar combinación</button>`:""}</div>`;
-}
 function cardSheet(id){
   const c=CARD[id],t=st.cardTab;
   const tabs=[["significado","Significado"],["simbolos","Símbolos"],["corresp","Correspondencias"],["mio","Lo mío"]];
@@ -1251,7 +1241,7 @@ function cardSheet(id){
   else{
     const h=occurrences(id),rv=h.filter(x=>x.rev).length,combos=Object.values(DB.combos).filter(x=>x.a===id||x.b===id),reps=DB.repeatNotes.filter(r=>r.card===id).sort((a,b)=>b.date.localeCompare(a.date));
     body=`<label class="field" style="margin-top:0"><span class="label">Mis notas sobre esta carta</span><textarea rows="5" data-bind="cardNote" data-id="${id}" placeholder="Símbolos que ves, lo que te dice a ti…">${esc(DB.notes[id]||"")}</textarea></label>
-    <section class="panel"><h3 style="font-size:1.1rem">Combinaciones</h3>${combos.length?combos.map(x=>{const o=x.a===id?x.b:x.a;return `<button class="bar link" style="display:block;margin:8px 0" data-act="comboOpen" data-a="${x.a}" data-b="${x.b}"><b>Con ${esc(CARD[o].name)}:</b> <span class="muted">${esc(trunc(x.note||"",100))}</span></button>`}).join(""):'<p class="muted small">Aún no hay combinaciones con esta carta.</p>'}<button class="btn sm" data-act="comboOpen" data-a="${id}">Añadir combinación</button></section>
+    <section class="panel"><h3 style="font-size:1.1rem">Combinaciones</h3>${combos.length?combos.map(x=>{const mine=x.a===id?x.ar:x.br,o=x.a===id?x.b:x.a,or=x.a===id?x.br:x.ar;return `<button class="bar link" style="display:block;margin:8px 0" data-act="comboOpen" data-a="${x.a}" data-b="${x.b}" data-ar="${x.ar?1:""}" data-br="${x.br?1:""}"><b>${mine?"Invertida, con ":"Con "}${esc(cName(o,or))}:</b> <span class="muted">${x.cat?esc(x.cat)+" · ":""}${esc(trunc(x.note||"",100))}</span></button>`}).join(""):'<p class="muted small">Aún no hay combinaciones con esta carta.</p>'}<button class="btn sm" data-act="comboOpen" data-a="${id}">Añadir combinación</button></section>
     ${reps.length?`<section class="panel"><h3 style="font-size:1.1rem">Cuando se repitió</h3>${reps.map(r=>`<p class="small"><b>${fmtDate(r.date)}</b> (${r.count} veces): ${esc(r.note)}</p>`).join("")}</section>`:""}
     <section class="panel"><h3 style="font-size:1.1rem">En tu historial</h3>${h.length?`<p class="muted small">Ha salido ${h.length} ${h.length===1?"vez":"veces"}${rv?", "+rv+" invertida":""}.</p>${h.slice(0,10).map(x=>`<p class="small">${fmtDate(x.date)}: ${esc(x.where)}${x.rev?" (invertida)":""}</p>`).join("")}`:`<p class="muted small">Todavía no ha salido en tus lecturas.</p>`}</section>`;
   }
@@ -2055,7 +2045,7 @@ function searchResults(){
   add("Rituales",DB.rituals.filter(r=>has(r.title,r.type,r.purpose,r.ingredients,r.steps,r.notes,(r.logs||[]).map(l=>l.notes+" "+l.followup).join(" "))),r=>`<button class="ritem compact" data-act="ritualOpen" data-id="${r.id}"><div class="rtop"><span>${esc(r.type)}</span></div><div class="rq">${esc(r.title)}</div></button>`);
   add("Intenciones",DB.intentions.filter(x=>has(x.text,x.plan,x.fullNote,x.closeNote)),intentItem);
   add("Correspondencias",allCorr().filter(c=>has(c.name,c.txt,c.uses.join(" "),DB.corrNotes[c.id])),c=>`<button class="ritem compact" data-act="corrOpen" data-id="${c.id}"><div class="rq" style="margin:0">${esc(c.name)}</div><div class="small muted">${CORR_CATS[c.cat]}</div></button>`);
-  add("Combinaciones",Object.values(DB.combos).filter(c=>has(CARD[c.a].name,CARD[c.b].name,c.note)),c=>`<button class="ritem compact" data-act="comboOpen" data-a="${c.a}" data-b="${c.b}"><div class="rq" style="margin:0">${esc(CARD[c.a].name)} y ${esc(CARD[c.b].name)}</div><div class="small muted">${esc(trunc(c.note||"",80))}</div></button>`);
+  add("Combinaciones",Object.values(DB.combos).filter(c=>has(CARD[c.a].name,CARD[c.b].name,c.note,c.cat||"")),c=>`<button class="ritem compact" data-act="comboOpen" data-a="${c.a}" data-b="${c.b}" data-ar="${c.ar?1:""}" data-br="${c.br?1:""}"><div class="rq" style="margin:0">${esc(cName(c.a,c.ar))} y ${esc(cName(c.b,c.br))}</div><div class="small muted">${esc(trunc(c.note||"",80))}</div></button>`);
   add("Glosario",GLO.filter(x=>has(x.t,x.s,x.b.join(" "))),x=>`<button class="ritem compact" data-act="gloOpen" data-id="${x.id}"><div class="rq" style="margin:0">${x.g?glyphOf(x)+" ":""}${esc(x.t)}</div><div class="small muted">${esc(x.s)}</div></button>`);
   add("Tradiciones",TRADITIONS.filter(r=>has(r.t,r.type,r.origin,r.src,r.mat.join(" "),r.steps.join(" "))),r=>`<button class="ritem compact" data-act="tradOpen" data-id="${r.id}"><div class="rq" style="margin:0">${esc(r.t)}</div><div class="small muted">${esc(r.origin)}</div></button>`);
   add("Cartas natales",DB.charts.filter(c=>has(c.name,c.place,c.bondNote)),c=>`<button class="ritem compact" data-act="goChart" data-id="${c.id}"><div class="rq" style="margin:0">${esc(c.name)}${c.mine?" (mi carta)":""}</div><div class="small muted">${fmtDate(c.date)}, ${esc(c.place||"")}</div></button>`);
@@ -2070,7 +2060,7 @@ function homeSettingsHtml(){
 }
 
 /* ============ Gestos: deslizar entre pestañas ============ */
-const SWIPE_TABS={lecturas:["lecTab",["lista","calendario"]],cartas:["cardsTab",["estudiar","catalogo","combos","guia"]],grimorio:["grimTab",["rituales","intenciones","corresp"]],astro:["astroTab",["carta","transitos","vinculos","cielo"]],glosario:["gloMode",["leer","estudiar"]]};
+const SWIPE_TABS={lecturas:["lecTab",["calendario","lista"]],cartas:["cardsTab",["estudiar","catalogo","combos","guia"]],grimorio:["grimTab",["rituales","intenciones","corresp"]],astro:["astroTab",["carta","transitos","vinculos","cielo"]],glosario:["gloMode",["leer","estudiar"]]};
 (function(){
   let sx=0,sy=0,t0=0,tgt=null;
   const main=document.getElementById("main");
@@ -2854,7 +2844,7 @@ function renderRitualCalendar(){
 }
 function ritualDayDetail(){
   const k=st.rcDay,rd=ritualDay(k),mi=moonInfo(k===dkey()?new Date():fromKey(k));
-  let h=`<section class="panel"><h3 style="font-size:1.2rem">${cap(fromKey(k).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"}))}</h3><p class="small muted" style="margin:4px 0 0">${mi.phase.emoji} ${mi.phase.name}, luna en ${SIGNS[mi.sign][0]}. Día de ${PL[DAY_RULER[fromKey(k).getDay()]].name}.</p></section>`;
+  let h=`<section class="panel nocol"><h3 style="font-size:1.2rem">${cap(fromKey(k).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"}))}</h3><p class="small muted" style="margin:4px 0 0">${mi.phase.emoji} ${mi.phase.name}, luna en ${SIGNS[mi.sign][0]}. Día de ${PL[DAY_RULER[fromKey(k).getDay()]].name}.</p></section>`;
   if(rd.plans.length)h+=`<h3 class="grouph">Programados</h3>${rd.plans.map(({r,p})=>`<div class="ritem compact"><div class="rq" style="margin:0">${esc(r.title)}</div>${p.note?`<div class="small muted">${esc(p.note)}</div>`:""}<div class="row" style="margin-top:8px"><button class="btn primary sm" data-act="planDone" data-r="${r.id}" data-p="${p.id}">Lo hice</button><button class="btn sm" data-act="ritualOpen" data-id="${r.id}">Ver ritual</button><button class="btn ghost sm" data-act="planDel" data-r="${r.id}" data-p="${p.id}">Quitar</button></div></div>`).join("")}`;
   if(rd.logs.length)h+=`<h3 class="grouph">Realizados</h3>${rd.logs.map(({r,l})=>{const o=OUTCOMES[l.outcome||""];return `<button class="ritem compact" data-act="logFromCal" data-r="${r.id}" data-l="${l.id}"><div class="rtop"><span>${esc(r.type)}</span><span class="badge ${o[1]}">${o[0]}</span></div><div class="rq">${esc(r.title)}</div>${l.notes?`<div class="small muted">${esc(trunc(l.notes,100))}</div>`:""}</button>`}).join("")}`;
   if(rd.ideal.length)h+=`<h3 class="grouph">Ideal para</h3>${rd.ideal.map(r=>`<button class="bar link" style="display:block;margin:6px 0" data-act="ritualOpen" data-id="${r.id}">${esc(r.type)}: <b>${esc(r.title)}</b> <span class="small muted">(${conditionsText(r)})</span></button>`).join("")}`;
@@ -3012,6 +3002,76 @@ function renderGuide(){
      <div class="chips">${ch.links.filter(l=>GLO_BY[l]).map(l=>`<button class="chip" data-act="gloOpen" data-id="${l}">${esc(GLO_BY[l].t)}</button>`).join("")}</div></div>`:""}</section>`}).join("");
 }
 
+/* ============ COMBINACIONES (con invertidas y categorías) ============ */
+const comboCats=()=>{if(!Array.isArray(DB.comboCats))DB.comboCats=DEFAULT_COMBO_CATS.slice();return DB.comboCats};
+const cKey=(id,r)=>id+(r?"r":"");
+const comboKeyR=(a,ar,b,br)=>[cKey(a,ar),cKey(b,br)].sort().join("|");
+const cName=(id,r)=>CARD[id].name+(r?" (invertida)":"");
+function findCombo(a,ar,b,br){
+  const exact=DB.combos[comboKeyR(a,ar,b,br)];if(exact)return {cb:exact,exact:true};
+  const any=Object.values(DB.combos).find(c=>(c.a===a&&c.b===b)||(c.a===b&&c.b===a));
+  return any?{cb:any,exact:false}:null;
+}
+function renderCombos(){
+  const cats=comboCats(),used=new Set(Object.values(DB.combos).map(c=>c.cat||""));
+  $("#cbody").innerHTML=`<p class="muted small">Anota lo que aprendes cuando dos cartas salen juntas, al derecho o invertidas. También puedes hacerlo desde el asistente de una lectura.</p>
+  <div class="row" style="margin-bottom:10px"><input type="search" placeholder="Buscar combinación" data-bind="comboSearch" value="${esc(st.comboSearch)}" style="flex:1;min-width:180px"><button class="btn primary" data-act="comboOpen">Nueva</button></div>
+  <div class="chips scroll" style="margin-bottom:12px"><button class="chip" data-act="comboCatFilter" data-c="*" aria-pressed="${st.comboCat==="*"}">Todas</button>${cats.map(c=>`<button class="chip" data-act="comboCatFilter" data-c="${esc(c)}" aria-pressed="${st.comboCat===c}">${esc(c)}</button>`).join("")}${used.has("")?`<button class="chip" data-act="comboCatFilter" data-c="" aria-pressed="${st.comboCat===""}">Sin categoría</button>`:""}</div>
+  <div id="clist"></div>`;
+  renderComboList();
+}
+const comboItem=c=>`<button class="ritem" data-act="comboOpen" data-a="${c.a}" data-b="${c.b}" data-ar="${c.ar?1:""}" data-br="${c.br?1:""}"><div class="row" style="gap:6px;flex-wrap:nowrap">${face(c.a,!!c.ar,"s")}${face(c.b,!!c.br,"s")}<div style="min-width:0"><div class="rq" style="margin:0 0 2px">${esc(cName(c.a,c.ar))} y ${esc(cName(c.b,c.br))}</div><div class="small muted">${esc(trunc(c.note||"",120))}</div></div></div></button>`;
+function renderComboList(){
+  const q=st.comboSearch.trim().toLowerCase();
+  let list=Object.values(DB.combos).sort((a,b)=>(b.updated||"").localeCompare(a.updated||""));
+  if(st.comboCat!=="*")list=list.filter(c=>(c.cat||"")===st.comboCat);
+  if(q)list=list.filter(c=>(CARD[c.a].name+" "+CARD[c.b].name+" "+(c.note||"")+" "+(c.cat||"")).toLowerCase().includes(q));
+  const el=$("#clist");if(!el)return;
+  if(!list.length){el.innerHTML=`<div class="empty">${Object.keys(DB.combos).length?"Ninguna combinación coincide.":"Todavía no has anotado combinaciones."}</div>`;return}
+  if(st.comboCat!=="*"){el.innerHTML=list.map(comboItem).join("");return}
+  const groups={};list.forEach(c=>(groups[c.cat||""]||(groups[c.cat||""]=[])).push(c));
+  const order=comboCats().filter(c=>groups[c]).concat(groups[""]?[""]:[]);
+  el.innerHTML=order.map(g=>`<h3 class="grouph">${g?esc(g):"Sin categoría"} <span class="muted small">(${groups[g].length})</span></h3>${groups[g].map(comboItem).join("")}`).join("");
+}
+function comboSheet(){
+  const d=st.comboDraft,k=d.a&&d.b?comboKeyR(d.a,d.ar,d.b,d.br):null,exists=d.origKey&&DB.combos[d.origKey],clash=k&&DB.combos[k]&&k!==d.origKey;
+  const slot=(w,id,r)=>`<div class="cslot">${id?face(id,r,"m"):backFace("m")}${cardSelect("combo."+w,id)}<label class="check"><input type="checkbox" data-bind="combo.${w}r" ${r?"checked":""}> Invertida</label></div>`;
+  return sheetHead(exists?"Editar combinación":"Nueva combinación")+`<div class="sbody">
+   <div class="cslots">${slot("a",d.a,d.ar)}${slot("b",d.b,d.br)}</div>
+   ${d.a&&d.b?`<div class="reveal small"><p><b>${esc(cName(d.a,d.ar))}:</b> ${esc(meaning(d.a,d.ar))}</p><p><b>${esc(cName(d.b,d.br))}:</b> ${esc(meaning(d.b,d.br))}</p>${(()=>{const r=relation(CARD[d.a].elem,CARD[d.b].elem);return r?`<p class="muted">Elementos: ${r[1].toLowerCase()}, ${r[2]}.</p>`:""})()}</div>`:""}
+   ${clash?`<p class="small bad">Ya tienes guardada esta misma combinación. Si guardas, se reemplazará su nota.</p>`:""}
+   <div class="field"><span class="label">Categoría</span><div class="chips" id="comboCatChips">${comboCatChips()}</div></div>
+   <label class="field"><span class="label">Qué significan juntas para ti</span><textarea rows="5" data-bind="combo.note" placeholder="Por ejemplo: cuando salen juntas suele hablar de…">${esc(d.note)}</textarea></label>
+   <button class="btn primary block" data-act="comboSave">Guardar combinación</button>
+   ${exists?`<button class="btn danger block" style="margin-top:10px" data-act="comboDelete">Borrar combinación</button>`:""}</div>`;
+}
+const comboCatChips=()=>{const d=st.comboDraft;return `<button class="chip" data-act="comboCatPick" data-c="" aria-pressed="${!d.cat}">Sin categoría</button>`+comboCats().map(c=>`<button class="chip" data-act="comboCatPick" data-c="${esc(c)}" aria-pressed="${d.cat===c}">${esc(c)}</button>`).join("")+`<button class="chip add" data-act="comboCatNew">+ Nueva categoría</button>`};
+function readComboForm(){
+  const d=st.comboDraft,v=sel=>{const e=document.querySelector(`#sheet [data-bind="${sel}"]`);return e};
+  const a=v("combo.a"),b=v("combo.b"),ar=v("combo.ar"),br=v("combo.br"),n=v("combo.note");
+  if(a)d.a=a.value;if(b)d.b=b.value;if(ar)d.ar=ar.checked;if(br)d.br=br.checked;if(n)d.note=n.value;
+}
+
+/* ============ SECCIONES PLEGABLES ============ */
+const colKeyOf=h=>h.textContent.replace(/[\d.,:()]+/g," ").replace(/\s+/g," ").trim();
+function enhanceCols(){
+  document.querySelectorAll("section.panel:not(.hcard):not(.nocol)").forEach(sec=>{
+    const h=sec.firstElementChild;if(!h||h.tagName!=="H3"||h.dataset.col)return;
+    const k=colKeyOf(h);if(!k)return;
+    h.dataset.col=k;h.classList.add("coltog");h.setAttribute("role","button");h.tabIndex=0;h.insertAdjacentHTML("beforeend",CHEV);
+    const c=!!(DB.settings.collapsed||{})[k];sec.classList.toggle("collapsed",c);h.setAttribute("aria-expanded",String(!c));
+  });
+}
+function toggleCol(h){
+  const k=h.dataset.col,all=DB.settings.collapsed||(DB.settings.collapsed={}),c=!all[k];
+  if(c)all[k]=true;else delete all[k];save();
+  document.querySelectorAll("h3.coltog").forEach(x=>{if(x.dataset.col===k){x.parentElement.classList.toggle("collapsed",c);x.setAttribute("aria-expanded",String(!c))}});
+}
+document.addEventListener("click",e=>{const h=e.target.closest("h3.coltog");if(h){toggleCol(h)}});
+document.addEventListener("keydown",e=>{const h=e.target.closest&&e.target.closest("h3.coltog");if(h&&(e.key==="Enter"||e.key===" ")){e.preventDefault();toggleCol(h)}});
+let colPending=false;
+new MutationObserver(()=>{if(colPending)return;colPending=true;queueMicrotask(()=>{colPending=false;enhanceCols()})}).observe(document.body,{childList:true,subtree:true});
+
 /* ============ ESTADÍSTICAS ============ */
 function inRange(k){
   if(st.statsRange==="all")return true;
@@ -3079,7 +3139,7 @@ function renderAjustes(){
   const canBadge="setAppBadge" in navigator&&"Notification" in window;
   $("#main").innerHTML=`<section class="panel"><span class="label">Apariencia</span>
    <div class="seg" role="group">${[["auto","Automático"],["light","Claro"],["dark","Oscuro"]].map(([k,n])=>`<button data-act="theme" data-t="${k}" aria-pressed="${s.theme===k}">${n}</button>`).join("")}</div>
-   <label class="check" style="margin-top:10px"><input type="checkbox" data-bind="reversals" ${s.reversals?"checked":""}> Usar cartas invertidas al sacar al azar</label></section>
+   <label class="check" style="margin-top:10px"><input type="checkbox" data-bind="reversals" ${s.reversals?"checked":""}> Usar cartas invertidas al sacar al azar</label><p class="small muted" style="margin:0">Es la opción por defecto de cada lectura nueva y de la carta del día; en cada lectura puedes cambiarla.</p></section>
   ${artSettingsHtml()}
   ${comfortSettingsHtml()}
   ${homeSettingsHtml()}
@@ -3212,7 +3272,7 @@ const ACT={
   ritualDelete:()=>{if(!confirm("¿Borrar este ritual y su registro?"))return;DB.rituals=DB.rituals.filter(r=>r.id!==st.rDraft.id);save();toast("Ritual borrado");afterSheetChange()},
   logOpen:el=>{if(!st.rDraft.id&&!persistRitual())return;const id=el.dataset.id,l=id&&st.rDraft.logs.find(x=>x.id===id);
     st.logDraft=l?Object.assign(JSON.parse(JSON.stringify(l)),{existing:true}):{id:uid(),date:dkey(),notes:"",reviewIn:DB.settings.defaultReview,outcome:"",followup:""};pushSheet(logSheet)},
-  logReview:el=>{const r=DB.rituals.find(x=>x.id===el.dataset.r);if(!r)return;st.rDraft=JSON.parse(JSON.stringify(r));const l=st.rDraft.logs.find(x=>x.id===el.dataset.l);st.logDraft=Object.assign(JSON.parse(JSON.stringify(l)),{existing:true});openSheet(ritualSheet);pushSheet(logSheet,()=>{const s=$("#logReview");s&&s.scrollIntoView({block:"start"})})},
+  logReview:el=>{const r=DB.rituals.find(x=>x.id===el.dataset.r);if(!r)return;st.rDraft=JSON.parse(JSON.stringify(r));const l=st.rDraft.logs.find(x=>x.id===el.dataset.l);st.logDraft=Object.assign(JSON.parse(JSON.stringify(l)),{existing:true});openSheet(ritualSheet);pushSheet(logSheet,()=>{const s=$("#logReview");if(s){s.classList.remove("collapsed");s.scrollIntoView({block:"start"})}})},
   logSave:()=>{const l=st.logDraft;if(!l.date){alert("Elige la fecha.");return}l.moon=moonForKey(l.date);l.reviewDate=reviewDateFor(l.date,l.reviewIn);if(l.outcome&&!l.followDate)l.followDate=dkey();
     const clean=Object.assign({},l);delete clean.existing;delete clean.planId;if(l.planId)st.rDraft.plans=(st.rDraft.plans||[]).filter(p=>p.id!==l.planId);const i=st.rDraft.logs.findIndex(x=>x.id===l.id);i<0?st.rDraft.logs.push(clean):st.rDraft.logs[i]=clean;persistRitual(true);toast("Registro guardado");popSheet()},
   logDelete:()=>{if(!confirm("¿Borrar este registro?"))return;st.rDraft.logs=st.rDraft.logs.filter(x=>x.id!==st.logDraft.id);persistRitual(true);popSheet()},
@@ -3251,8 +3311,8 @@ const ACT={
   setFor:el=>{draft.forWho=el.dataset.f;$("#forWho").innerHTML=forWhoHtml();renderAstroLink()},
   toggleAstroLink:()=>{st.astroLinkOpen=!st.astroLinkOpen;renderAstroLink()},
   setDeck:el=>{draft.deck=el.dataset.d;st.deckTouched=true;$("#deckSeg").innerHTML=deckSeg()},
-  drawAll:()=>{autoVirtual();const deck=shuffled(CARDS.map(c=>c.id));draft.cards.forEach((c,i)=>{c.id=deck[i];c.rev=randRev()});renderDraftCards(true)},
-  drawOne:el=>{autoVirtual();const i=+el.dataset.i,used=usedIds(i),pool=CARDS.filter(c=>!used.has(c.id));draft.cards[i].id=pool[rnd(pool.length)].id;draft.cards[i].rev=randRev();renderDraftCards(true)},
+  drawAll:()=>{autoVirtual();const deck=shuffled(CARDS.map(c=>c.id));draft.cards.forEach((c,i)=>{c.id=deck[i];c.rev=draftRev()});renderDraftCards(true)},
+  drawOne:el=>{autoVirtual();const i=+el.dataset.i,used=usedIds(i),pool=CARDS.filter(c=>!used.has(c.id));draft.cards[i].id=pool[rnd(pool.length)].id;draft.cards[i].rev=draftRev();renderDraftCards(true)},
   addPos:()=>{draft.cards.push({pos:"Carta "+(draft.cards.length+1),id:"",rev:false});renderDraftCards()},
   removePos:el=>{draft.cards.splice(+el.dataset.i,1);draft.cards.forEach((c,i)=>c.pos="Carta "+(i+1));if(!draft.cards.length)ACT.addPos();else renderDraftCards()},
   toggleAssist:()=>{st.assistOpen=!st.assistOpen;renderAssist()},
@@ -3273,11 +3333,16 @@ const ACT={
   fisShow:()=>{st.fis.shown=true;renderStudy()},
   fisReset:()=>{st.fis={id:"",rev:false,text:"",shown:false};renderStudy()},
   fisSave:()=>{const f=st.fis;if(!f.text.trim())return;const prev=DB.notes[f.id]||"";DB.notes[f.id]=(prev?prev+"\n\n":"")+fmtDate(dkey())+(f.rev?" (invertida)":"")+": "+f.text.trim();save();toast("Guardado en tus notas de "+CARD[f.id].name);st.fis={id:"",rev:false,text:"",shown:false};renderStudy()},
-  comboOpen:el=>{const a=el.dataset.a||"",b=el.dataset.b||"",ex=a&&b?DB.combos[comboKey(a,b)]:null;st.comboDraft={a,b,note:ex?ex.note:"",origKey:ex?comboKey(a,b):null};goSheet(comboSheet)},
-  comboSave:()=>{const d=st.comboDraft;if(!d.a||!d.b){alert("Elige las dos cartas.");return}if(d.a===d.b){alert("Elige dos cartas distintas.");return}
-    const k=comboKey(d.a,d.b);if(d.origKey&&d.origKey!==k)delete DB.combos[d.origKey];
-    const [a,b]=k.split("|");DB.combos[k]={a,b,note:d.note.trim(),updated:new Date().toISOString()};save();toast("Combinación guardada");afterSheetChange()},
-  comboDelete:()=>{if(!confirm("¿Borrar esta combinación?"))return;const d=st.comboDraft;delete DB.combos[d.origKey||comboKey(d.a,d.b)];save();toast("Combinación borrada");afterSheetChange()},
+  comboOpen:el=>{const d=el.dataset,a=d.a||"",b=d.b||"",ar=!!d.ar,br=!!d.br,k=a&&b?comboKeyR(a,ar,b,br):null,ex=k?DB.combos[k]:null;
+    st.comboDraft={a,b,ar,br,note:ex?ex.note||"":"",cat:ex?ex.cat||"":"",origKey:ex?k:null};goSheet(comboSheet)},
+  comboSave:()=>{readComboForm();const d=st.comboDraft;if(!d.a||!d.b){alert("Elige las dos cartas.");return}if(d.a===d.b){alert("Elige dos cartas distintas.");return}
+    const k=comboKeyR(d.a,d.ar,d.b,d.br);if(d.origKey&&d.origKey!==k)delete DB.combos[d.origKey];
+    const [p1,p2]=k.split("|"),pr=x=>({id:x.replace(/r$/,""),r:x.endsWith("r")});const A=pr(p1),B=pr(p2);
+    DB.combos[k]={a:A.id,ar:A.r,b:B.id,br:B.r,note:(d.note||"").trim(),cat:d.cat||"",updated:new Date().toISOString()};save();toast("Combinación guardada");afterSheetChange()},
+  comboDelete:()=>{if(!confirm("¿Borrar esta combinación?"))return;const d=st.comboDraft;if(d.origKey)delete DB.combos[d.origKey];save();toast("Combinación borrada");afterSheetChange()},
+  comboCatPick:el=>{st.comboDraft.cat=el.dataset.c;$("#comboCatChips").innerHTML=comboCatChips()},
+  comboCatNew:()=>{const n=(prompt("Nombre de la nueva categoría")||"").trim();if(!n)return;const cats=comboCats();if(!cats.some(c=>c.toLowerCase()===n.toLowerCase()))cats.push(n);save();st.comboDraft.cat=cats.find(c=>c.toLowerCase()===n.toLowerCase());$("#comboCatChips").innerHTML=comboCatChips()},
+  comboCatFilter:el=>{st.comboCat=el.dataset.c;renderCombos()},
   repeatOpen:el=>{st.repeatDraft="";const id=el.dataset.id;goSheet(()=>repeatSheet(id))},
   repeatSave:el=>{if(!st.repeatDraft.trim()){alert("Escribe tu nota primero.");return}DB.repeatNotes.push({id:uid(),card:el.dataset.id,date:dkey(),count:+el.dataset.n,note:st.repeatDraft.trim()});save();toast("Nota guardada");st.repeatDraft="";afterSheetChange()},
   statsRange:el=>{st.statsRange=el.dataset.r;renderStats()},
@@ -3300,7 +3365,7 @@ function persistIntent(){
   save();return true;
 }
 function afterSheetChange(){if(SHEETS.length>1)popSheet();else closeSheet()}
-document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(el&&ACT[el.dataset.act]){e.preventDefault();ACT[el.dataset.act](el,e)}});
+document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(el&&ACT[el.dataset.act]){const ae=document.activeElement;if(ae&&ae!==el&&/^(SELECT|INPUT|TEXTAREA)$/.test(ae.tagName)&&!el.closest(".pkeys"))ae.blur();e.preventDefault();ACT[el.dataset.act](el,e)}});
 
 const BIND={
   search:el=>{st.search=el.value;renderReadingList()},
@@ -3345,6 +3410,7 @@ const BIND={
   "d.date":el=>{draft.date=el.value;renderAstroLink();const p=$("#reviewPrev");if(p)p.textContent=reviewPreview();if(st.assistOpen)renderAssist()},
   "d.question":el=>draft.question=el.value,
   "d.person":el=>draft.person=el.value,
+  "d.allowRev":el=>draft.allowRev=el.checked,
   obsGaze:el=>{setObs(el.dataset.id,"gaze",el.value||null);if(draft&&st.assistOpen)renderAssist()},
   obsSky:el=>{setObs(el.dataset.id,"sky",el.value||null);if(draft&&st.assistOpen)renderAssist()},
   "d.personChart":el=>{draft.personChart=el.value;const c=DB.charts.find(x=>x.id===el.value);if(c){draft.person=c.name;const i=$("[data-bind='d.person']");if(i)i.value=c.name}renderAstroLink()},
@@ -3363,8 +3429,10 @@ const BIND={
   catGroup:el=>{st.catGroup=el.value;renderCatalogGrid()},
   catSearch:el=>{st.catSearch=el.value;renderCatalogGrid()},
   comboSearch:el=>{st.comboSearch=el.value;renderComboList()},
-  "combo.a":el=>{st.comboDraft.a=el.value;syncCombo()},
-  "combo.b":el=>{st.comboDraft.b=el.value;syncCombo()},
+  "combo.a":el=>{readComboForm();refreshSheet()},
+  "combo.b":el=>{readComboForm();refreshSheet()},
+  "combo.ar":el=>{readComboForm();refreshSheet()},
+  "combo.br":el=>{readComboForm();refreshSheet()},
   "combo.note":el=>st.comboDraft.note=el.value,
   repeatNote:el=>st.repeatDraft=el.value,
   cardNote:el=>{DB.notes[el.dataset.id]=el.value;saveSoon()},
@@ -3373,7 +3441,6 @@ const BIND={
 };
 function updRitNext(){const p=$("#ritNext");if(p)p.innerHTML=nextIdealText(st.rDraft,nextIdeal(st.rDraft));const h=$("#ritHours");if(h)h.innerHTML=ritHoursText(st.rDraft)}
 function ritHoursText(d){if(!d.hour)return"";const hs=nextHoursOf(d.hour,new Date(),4);return `Próximas horas de ${PL[d.hour].name}: ${hs.map(h=>`${dkey(h.start)===dkey()?"hoy":fmtShort(dkey(h.start))} a las ${fmtTime(h.start)}`).join("; ")}`}
-function syncCombo(){const d=st.comboDraft;if(d.a&&d.b){const ex=DB.combos[comboKey(d.a,d.b)];if(ex){d.note=ex.note;d.origKey=comboKey(d.a,d.b)}}refreshSheet()}
 function onBind(e){
   const el=e.target.closest("[data-bind]");if(!el||!BIND[el.dataset.bind])return;
   const discrete=el.tagName==="SELECT"||el.type==="checkbox"||el.type==="file";
