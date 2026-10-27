@@ -324,6 +324,14 @@ h3.coltog .chev{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-widt
 .panel.collapsed>:not(h3.coltog){display:none!important}
 .panel.collapsed>h3.coltog{margin:0!important}
 .panel.collapsed{padding-top:14px;padding-bottom:14px}
+.eblock{margin:2px 0}
+.ebhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;min-height:32px}
+.etext{white-space:pre-wrap;line-height:1.6;background:var(--bg);border-radius:12px;padding:10px 12px}
+.sheet .etext{background:var(--surface)}
+.rsum{margin:8px 0 0;font-size:.88rem;color:var(--muted);font-style:italic;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.notep{white-space:pre-wrap}
+.strip .d{position:relative}
+i.hasnote{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
 </style>
 </head>
 <body>
@@ -709,7 +717,7 @@ CARDS.forEach(c=>{
 });
 
 /* ============ Versión ============ */
-const APP_VERSION="2026-10-22";
+const APP_VERSION="2026-10-27";
 /* ============ Almacenamiento ============ */
 const KEY="grimorio.v1";
 const DEFAULT_COMBO_CATS=["Amor","Trabajo","Advertencias","Crecimiento","Espiritual"];
@@ -817,7 +825,7 @@ function applyTheme(){
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",applyTheme);
 
 /* ============ Navegación y hojas ============ */
-const st={view:"hoy",comboCat:"*",guideOpen:"mirada",astroLinkOpen:false,spSel:0,rcY:null,rcM:null,rcDay:null,pickMode:"plan",pickDate:"",pickNote:"",planDate:"",planNote:"",gloMode:"leer",gloKind:"simbolos",gq2:null,gsess:{ok:0,total:0},hoursAll:false,ritMode:"mine",tradSearch:"",gloSearch:"",gloCat:"",gq:"",bondId:null,curioShift:0,astroTab:"carta",chartId:null,chDraft:null,grimTab:"rituales",ritSearch:"",corrSearch:"",corrCat:"",corrUse:"",rDraft:null,logDraft:null,iDraft:null,cDraft:null,search:"",filter:"todas",tagFilter:"",lecTab:"calendario",calY:null,calM:null,calDay:null,spDraft:null,cardsTab:"estudiar",studyMode:"significado",studyGroup:"todas",studyCur:null,studyShown:false,q:null,sess:{ok:0,total:0},
+const st={view:"hoy",ebOpen:{},comboCat:"*",guideOpen:"mirada",astroLinkOpen:false,spSel:0,rcY:null,rcM:null,rcDay:null,pickMode:"plan",pickDate:"",pickNote:"",planDate:"",planNote:"",gloMode:"leer",gloKind:"simbolos",gq2:null,gsess:{ok:0,total:0},hoursAll:false,ritMode:"mine",tradSearch:"",gloSearch:"",gloCat:"",gq:"",bondId:null,curioShift:0,astroTab:"carta",chartId:null,chDraft:null,grimTab:"rituales",ritSearch:"",corrSearch:"",corrCat:"",corrUse:"",rDraft:null,logDraft:null,iDraft:null,cDraft:null,search:"",filter:"todas",tagFilter:"",lecTab:"calendario",calY:null,calM:null,calDay:null,spDraft:null,cardsTab:"estudiar",studyMode:"significado",studyGroup:"todas",studyCur:null,studyShown:false,q:null,sess:{ok:0,total:0},
   fis:{id:"",rev:false,text:"",shown:false},catGroup:"todas",catSearch:"",comboSearch:"",statsRange:"all",cardTab:"significado",assistOpen:false,comboDraft:null,repeatDraft:""};
 const TITLES={hoy:"Grimorio",lecturas:"Diario",cartas:"Cartas",grimorio:"Mi grimorio",stats:"Estadísticas",ajustes:"Ajustes",astro:"Astrología",glosario:"Glosario"};
 const NAV_OF={stats:"menu",ajustes:"menu",astro:"menu",glosario:"menu"};
@@ -879,7 +887,8 @@ const readingItem=r=>`<button class="ritem" data-act="openReading" data-id="${r.
     <div class="rtop"><span>${r.moon?.emoji||""} ${fmtDate(r.date)}</span>${readingBadge(r)}</div>
     <div class="rq">${esc(r.question||readingSpreadName(r))}</div>
     ${(r.tags||[]).length||r.deck||r.forWho==="otra"?`<div class="tagline">${r.forWho==="otra"?`<span class="deckb otra">${esc(forLabel(r))}</span>`:""}${r.deck?`<span class="deckb ${r.deck}">${r.deck==="fisico"?"Físico":"Virtual"}</span>`:""}${(r.tags||[]).map(esc).join(", ")}</div>`:""}
-    <div class="rcards">${r.cards.filter(c=>c.id).map(c=>face(c.id,c.rev,"s")).join("")}</div></button>`;
+    <div class="rcards">${r.cards.filter(c=>c.id).map(c=>face(c.id,c.rev,"s")).join("")}</div>
+    ${r.interp||r.followup?`<p class="rsum">${r.interp?esc(trunc(r.interp.replace(/\s+/g," "),160)):`<b>Qué pasó:</b> ${esc(trunc(r.followup.replace(/\s+/g," "),140))}`}</p>`:""}</button>`;
 function renderReadingList(){
   const q=st.search.trim().toLowerCase(),today=dkey();
   let list=DB.readings.slice().sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created));
@@ -935,7 +944,7 @@ function renderDayDetail(){
   <div class="row" style="flex-wrap:nowrap;margin-top:8px">${moonSVG(mi.elong,44)}<div><b>${e?e.name+" a las "+e.time.toLocaleTimeString("es",{hour:"numeric",minute:"2-digit",hour12:true}):mi.phase.name}</b><p class="small muted" style="margin:0">${Math.round(mi.illum*100)}% iluminada, luna en ${signTxt(mi.sign)}</p></div></div></section>`;
   const evs=(monthSky(y,m-1)[k]||[]).slice().sort((a,b)=>(a.time||0)-(b.time||0)),rxs=retrogradesOn(fromKey(k)),vocs=vocOnDay(k);
   if(evs.length||rxs.length||vocs.length)h+=`<section class="panel"><span class="label">Cielo del día</span>${vocs.map(v=>`<p class="small voc">Luna vacía de curso: ${dkey(v.start)===k?fmtTime(v.start):"desde el "+fmtShort(dkey(v.start))+" "+fmtTime(v.start)} a ${dkey(v.end)===k?fmtTime(v.end):fmtShort(dkey(v.end))+" "+fmtTime(v.end)}</p>`).join("")}${evs.map(x=>`<p class="small">${PL[x.p].g} ${x.text}${x.time?" a las "+x.time.toLocaleTimeString("es",{hour:"numeric",minute:"2-digit",hour12:true}):"."}</p>`).join("")}${rxs.length?`<p class="small muted">Retrógrados: ${rxs.map(p=>PL[p].name).join(", ")}.</p>`:""}</section>`;
-  if(dd.daily){const c=CARD[dd.daily.id];h+=`<section class="panel"><div class="daily"><button class="cardbtn" data-act="cardInfo" data-id="${c.id}">${face(c.id,dd.daily.rev,"m")}</button><div><span class="label">Carta del día</span><h3>${esc(c.name)}${dd.daily.rev?" (invertida)":""}</h3>${dd.daily.note?`<p class="small">${esc(dd.daily.note)}</p>`:""}</div></div></section>`}
+  if(dd.daily){const c=CARD[dd.daily.id];h+=`<button class="ritem" data-act="dailyOpen" data-k="${k}"><div class="daily"><span class="cardbtn">${face(c.id,dd.daily.rev,"m")}</span><div style="min-width:0"><span class="label">Carta del día</span><h3>${esc(c.name)}${dd.daily.rev?" (invertida)":""}</h3>${dd.daily.note?`<p class="small notep">${esc(trunc(dd.daily.note,180))}</p>`:`<p class="small muted">Toca para escribir tus notas.</p>`}</div></div></button>`}
   if(dd.reads.length)h+=`<h3 class="grouph">Lecturas</h3>${dd.reads.map(readingItem).join("")}`;
   const rplans=ritualDay(k).plans;if(rplans.length)h+=`<h3 class="grouph">Rituales programados</h3>${rplans.map(({r,p})=>`<button class="ritem compact" data-act="ritualOpen" data-id="${r.id}"><div class="rq" style="margin:0">${esc(r.title)}</div>${p.note?`<div class="small muted">${esc(p.note)}</div>`:""}</button>`).join("")}`;
   if(dd.rits.length)h+=`<h3 class="grouph">Rituales</h3>${dd.rits.map(({r,l})=>`<button class="ritem compact" data-act="ritualOpen" data-id="${r.id}"><div class="rtop"><span>${esc(r.type)}</span></div><div class="rq">${esc(r.title)}</div>${l.notes?`<div class="small muted">${esc(trunc(l.notes,100))}</div>`:""}</button>`).join("")}`;
@@ -955,7 +964,7 @@ function openEditor(id,spread,opts={}){
   else{const sp=spread&&spreadOf(spread)&&!spreadOf(spread).gone?spread:"tres";
     draft={id:null,allowRev:DB.settings.reversals,deck:"fisico",forWho:"yo",person:"",personChart:"",date:opts.date||dkey(),question:"",spread:sp,cards:positionsFor(sp,1).map(p=>({pos:p,id:"",rev:false})),interp:"",tags:[],reviewIn:DB.settings.defaultReview,outcome:"",followup:"",followDate:""}}
   st.deckTouched=!!draft.id&&!!draft.deck;if(!draft.tags)draft.tags=[];if(draft.reviewIn==null)draft.reviewIn="";
-  st.assistOpen=false;
+  st.assistOpen=false;delete st.ebOpen.interp;delete st.ebOpen.followup;
   let once=!!opts.review;
   openSheet(editorHtml,()=>{renderDraftCards();if(once){once=false;const s=$("#reviewSec");if(s){s.classList.remove("collapsed");s.scrollIntoView({block:"start"})}}});
 }
@@ -984,11 +993,11 @@ function editorHtml(){
     <div id="dcards"></div>
     <div id="assistWrap"></div>
     <div id="astroLinkWrap"></div>
-    <label class="field"><span class="label">Mi interpretación</span><textarea rows="5" data-bind="d.interp" placeholder="Lo que sentiste, las conexiones entre cartas…">${esc(draft.interp)}</textarea></label>
+    <div class="field">${ebHtml("interp")}</div>
     <label class="field"><span class="label">Recordarme revisarla</span><select data-bind="d.reviewIn">${REVIEW_OPTS.map(([k,n])=>`<option value="${k}" ${k===draft.reviewIn?"selected":""}>${n}</option>`).join("")}</select><span class="small muted" id="reviewPrev">${reviewPreview()}</span></label>
     <section class="panel" id="reviewSec" style="margin-top:20px;scroll-margin-top:80px"><h3 style="font-size:1.15rem;margin-bottom:4px">¿Cómo resultó?</h3><p class="muted small">Vuelve más adelante y anota qué pasó en realidad.</p>
       <label class="field"><span class="label">Resultado</span><select data-bind="d.outcome">${Object.entries(OUTCOMES).map(([k,o])=>`<option value="${k}" ${k===(draft.outcome||"")?"selected":""}>${k?o[0]:"Todavía no lo sé"}</option>`).join("")}</select></label>
-      <label class="field"><span class="label">Qué pasó</span><textarea rows="4" data-bind="d.followup" placeholder="Cómo se cumplió (o no) la lectura">${esc(draft.followup)}</textarea></label>
+      <div class="field">${ebHtml("followup")}</div>
       <label class="field"><span class="label">Fecha de la revisión</span><input type="date" data-bind="d.followDate" value="${draft.followDate||""}"></label>
     </section>
     ${exists?`<button class="btn danger block" data-act="deleteReading">Borrar esta lectura</button>`:""}
@@ -1992,10 +2001,10 @@ const HOME_RENDER={
     if(!daily)h=`<div class="daily">${backFace("l")}<div><p class="muted" style="margin-top:0">Respira, piensa en tu día y saca una carta.</p><button class="btn primary" data-act="drawDaily">Sacar carta del día</button></div></div>`;
     else{const c=CARD[daily.id];
       h=`<div class="daily"><button class="cardbtn" data-act="cardInfo" data-id="${c.id}">${face(c.id,daily.rev,"l",daily.fresh?"drawn":"")}</button><div><h3>${esc(c.name)}</h3>${daily.rev?'<span class="badge">Invertida</span>':""}<p>${esc(meaning(c.id,daily.rev))}</p><p class="small muted">Consejo: ${esc(c.cons)}</p></div></div>
-      <label class="field"><span class="label">Notas del día</span><textarea rows="3" data-bind="dailyNote" placeholder="¿Cómo se manifestó esta carta hoy?">${esc(daily.note||"")}</textarea></label>`;
+      <div class="field">${ebHtml("daily:"+k)}</div>`;
       delete daily.fresh;}
     const past=[];for(let i=1;i<=10;i++){const d=new Date();d.setDate(d.getDate()-i);const dd=DB.daily[dkey(d)];if(dd)past.push([d,dd])}
-    if(past.length)h+=`<span class="label" style="margin-top:12px">Días anteriores</span><div class="strip">${past.map(([d,dd])=>`<button class="cardbtn d" data-act="cardInfo" data-id="${dd.id}">${face(dd.id,dd.rev,"s")}<span>${d.toLocaleDateString("es",{day:"numeric",month:"short"})}</span></button>`).join("")}</div>`;
+    if(past.length)h+=`<span class="label" style="margin-top:12px">Días anteriores</span><div class="strip">${past.map(([d,dd])=>`<button class="cardbtn d" data-act="dailyOpen" data-k="${dkey(d)}">${face(dd.id,dd.rev,"s")}<span>${d.toLocaleDateString("es",{day:"numeric",month:"short"})}</span>${dd.note?'<i class="hasnote" aria-label="con notas"></i>':""}</button>`).join("")}</div>`;
     return h;
   },
   repetidas(){
@@ -3074,6 +3083,32 @@ document.addEventListener("keydown",e=>{const h=e.target.closest&&e.target.close
 let colPending=false;
 new MutationObserver(()=>{if(colPending)return;colPending=true;queueMicrotask(()=>{colPending=false;enhanceCols()})}).observe(document.body,{childList:true,subtree:true});
 
+/* ============ TEXTOS CON BOTÓN DE EDITAR ============ */
+function ebCfg(fid){
+  if(fid==="interp")return {label:"Mi interpretación",ph:"Aún no has escrito tu interpretación.",edit:"Escribir mi interpretación",rows:6,get:()=>draft.interp||"",set:v=>draft.interp=v,persist:()=>persistDraftField("interp")};
+  if(fid==="followup")return {label:"Qué pasó",ph:"Aún no has anotado qué pasó.",edit:"Anotar qué pasó",rows:5,get:()=>draft.followup||"",set:v=>draft.followup=v,persist:()=>persistDraftField("followup")};
+  if(fid.startsWith("daily:")){const k=fid.slice(6);return {label:"Notas del día",ph:"Aún no has escrito notas sobre esta carta.",edit:"Escribir notas",rows:4,get:()=>(DB.daily[k]&&DB.daily[k].note)||"",set:v=>{if(DB.daily[k])DB.daily[k].note=v},persist:()=>{save();return true}}}
+}
+function persistDraftField(f){if(!draft||!draft.id)return false;const r=DB.readings.find(x=>x.id===draft.id);if(!r)return false;r[f]=draft[f];r.updated=new Date().toISOString();save();return true}
+const ebId=fid=>"eb-"+fid.replace(/[^a-z0-9]/gi,"_");
+function ebHtml(fid){
+  const c=ebCfg(fid),v=c.get(),open=fid in st.ebOpen;
+  return `<div class="eblock" id="${ebId(fid)}"><div class="ebhead"><span class="label" style="margin:0">${c.label}</span>${open||!v?"":`<button class="btn ghost sm" data-act="ebEdit" data-f="${fid}">Editar</button>`}</div>
+   ${open?`<textarea rows="${c.rows}" data-bind="ebText" data-f="${fid}" placeholder="${esc(c.ph)}">${esc(v)}</textarea><div class="row" style="margin-top:8px"><button class="btn primary sm" data-act="ebSave" data-f="${fid}">Guardar</button><button class="btn ghost sm" data-act="ebCancel" data-f="${fid}">Cancelar</button></div>`
+   :v?`<div class="etext">${esc(v)}</div>`:`<p class="small muted" style="margin:4px 0 8px">${esc(c.ph)}</p><button class="btn sm" data-act="ebEdit" data-f="${fid}">${c.edit}</button>`}</div>`;
+}
+function renderEB(fid){const el=document.getElementById(ebId(fid));if(el)el.outerHTML=ebHtml(fid)}
+
+/* ============ CARTA DEL DÍA DE CUALQUIER FECHA ============ */
+function dailySheet(k){
+  const d=DB.daily[k];if(!d)return sheetHead("Carta del día")+`<div class="sbody"><p class="muted">No hay carta del día para esta fecha.</p></div>`;
+  const c=CARD[d.id];
+  return sheetHead("Carta del día")+`<div class="sbody"><p class="muted" style="margin-top:0;text-align:center">${cap(fromKey(k).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))}</p>
+   <div class="flash">${face(c.id,d.rev,"l")}<h3>${esc(c.name)}${d.rev?" (invertida)":""}</h3><p>${esc(meaning(c.id,d.rev))}</p><p class="small muted">Consejo: ${esc(c.cons)}</p></div>
+   <section class="panel nocol">${ebHtml("daily:"+k)}</section>
+   <button class="btn block" data-act="cardInfo" data-id="${c.id}">Ver la ficha completa de la carta</button></div>`;
+}
+
 /* ============ ESTADÍSTICAS ============ */
 function inRange(k){
   if(st.statsRange==="all")return true;
@@ -3319,6 +3354,10 @@ const ACT={
       if("caches" in window){const c=await caches.open("grimorio-v1");await c.put("./index.html",new Response(t,{headers:{"Content-Type":"text/html"}}));await c.put("./",new Response(t,{headers:{"Content-Type":"text/html"}}))}
       if(m&&m[1]!==APP_VERSION){toast("Nueva versión "+m[1]+". Recargando…");setTimeout(()=>location.reload(),900)}else toast("Ya tienes la última versión publicada")}
     catch(e){alert("No se pudo comprobar la actualización. Revisa tu conexión.")}},
+  ebEdit:el=>{const f=el.dataset.f;st.ebOpen[f]=ebCfg(f).get();renderEB(f);const t=document.querySelector(`#${ebId(f)} textarea`);if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}},
+  ebSave:el=>{const f=el.dataset.f,c=ebCfg(f),t=document.querySelector(`#${ebId(f)} textarea`);if(t)c.set(t.value);delete st.ebOpen[f];const ok=c.persist();toast(ok?"Guardado":"Se guardará al guardar la lectura");renderEB(f)},
+  ebCancel:el=>{const f=el.dataset.f;ebCfg(f).set(st.ebOpen[f]);delete st.ebOpen[f];renderEB(f)},
+  dailyOpen:el=>{const k=el.dataset.k;goSheet(()=>dailySheet(k))},
   setFor:el=>{draft.forWho=el.dataset.f;$("#forWho").innerHTML=forWhoHtml();renderAstroLink()},
   toggleAstroLink:()=>{st.astroLinkOpen=!st.astroLinkOpen;renderAstroLink()},
   setDeck:el=>{draft.deck=el.dataset.d;st.deckTouched=true;$("#deckSeg").innerHTML=deckSeg()},
@@ -3421,6 +3460,7 @@ const BIND={
   "d.date":el=>{draft.date=el.value;renderAstroLink();const p=$("#reviewPrev");if(p)p.textContent=reviewPreview();if(st.assistOpen)renderAssist()},
   "d.question":el=>draft.question=el.value,
   "d.person":el=>draft.person=el.value,
+  ebText:el=>ebCfg(el.dataset.f).set(el.value),
   "d.allowRev":el=>draft.allowRev=el.checked,
   obsGaze:el=>{setObs(el.dataset.id,"gaze",el.value||null);if(draft&&st.assistOpen)renderAssist()},
   obsSky:el=>{setObs(el.dataset.id,"sky",el.value||null);if(draft&&st.assistOpen)renderAssist()},
